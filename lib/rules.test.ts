@@ -10,6 +10,8 @@ import {
   formatRange,
   groupByToken,
   manilaNow,
+  resolveDate,
+  toggleHour,
 } from "./rules.ts";
 
 function checkDateHelpers(): void {
@@ -87,5 +89,25 @@ assert.deepEqual(
 assert.equal(grouped[0].name, "first");
 assert.deepEqual(groupByToken([]), []);
 assert.deepEqual(rows.map((r) => r.hour), [10, 9, 9]);
+
+assert.equal(resolveDate(undefined, "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate(["2026-11-15"], "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("junk", "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("2000-01-01", "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("2026-11-13", "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("2026-11-14", "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("2026-11-20", "2026-11-14"), "2026-11-20");
+assert.equal(resolveDate("2026-12-14", "2026-11-14"), "2026-12-14");
+assert.equal(resolveDate("2026-12-15", "2026-11-14"), "2026-11-14");
+assert.equal(resolveDate("2026-02-30", "2026-02-10"), "2026-02-10");
+
+assert.deepEqual(toggleHour([], 9), [9]);
+assert.deepEqual(toggleHour([9], 10), [9, 10]);
+assert.deepEqual(toggleHour([9, 10], 8), [8, 9, 10]);
+assert.deepEqual(toggleHour([9, 10], 12), [12]);
+assert.deepEqual(toggleHour([9, 10, 11], 9), [10, 11]);
+assert.deepEqual(toggleHour([9, 10, 11], 11), [9, 10]);
+assert.deepEqual(toggleHour([9, 10, 11], 10), [10]);
+assert.deepEqual(toggleHour([9], 9), []);
 
 console.log("lib/rules.test.ts: all checks passed");

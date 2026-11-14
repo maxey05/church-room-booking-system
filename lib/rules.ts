@@ -46,6 +46,30 @@ export function addDays(date: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
+export function resolveDate(param: unknown, today: string): string {
+  if (typeof param !== "string") return today;
+  try {
+    const max = addDays(today, MAX_DAYS_AHEAD);
+    if (param >= today && param <= max && addDays(param, 0) === param) {
+      return param;
+    }
+  } catch {
+    return today;
+  }
+  return today;
+}
+
+export function toggleHour(picked: number[], h: number): number[] {
+  if (picked.length === 0) return [h];
+  const lo = Math.min(...picked);
+  const hi = Math.max(...picked);
+  if (picked.includes(h)) {
+    return h === lo || h === hi ? picked.filter((x) => x !== h) : [h];
+  }
+  if (h === lo - 1 || h === hi + 1) return [...picked, h].sort((a, b) => a - b);
+  return [h];
+}
+
 export function formatHour(h: number): string {
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   const suffix = h % 24 < 12 ? "AM" : "PM";

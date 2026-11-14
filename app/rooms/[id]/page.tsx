@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db, type Room } from "@/lib/supabase";
+import { addDays, formatDate, manilaNow, MAX_DAYS_AHEAD, resolveDate } from "@/lib/rules";
 import RoomPhoto from "../../room-photo";
+import BookingForm from "./BookingForm";
 
-export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
+export default async function RoomPage({
+  params,
+  searchParams,
+}: PageProps<"/rooms/[id]">) {
   const { id } = await params;
   if (!/^\d{1,9}$/.test(id)) notFound();
 
@@ -16,6 +21,19 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
   if (error) throw new Error(error.message);
   if (!data) notFound();
   const room = data as Room;
+
+  const today = manilaNow();
+  const max = addDays(today.date, MAX_DAYS_AHEAD);
+  const date = resolveDate((await searchParams).date, today.date);
+  const { data: rows, error: slotsError } = await db()
+    .from("bookings")
+    .select("hour")
+    .eq("room_id", room.id)
+    .eq("date", date)
+    .eq("status", "booked");
+  if (slotsError) throw new Error(slotsError.message);
+  const taken = (rows ?? []).map((r) => r.hour as number);
+  const pastUntil = date === today.date ? today.hour : -1;
 
   const facts: [string, string][] = [["Floor", String(room.floor)]];
   if (room.pax != null) facts.push(["Capacity", `${room.pax} pax`]);
@@ -63,6 +81,38 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="lg:col-span-2">
+        <h2>{formatDate(date)}</h2>
+
+        <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 font-semibold">
+            Date
+            <input
+              type="date"
+              name="date"
+              min={today.date}
+              max={max}
+              defaultValue={date}
+              className="min-h-11 rounded-pill border border-line bg-surface px-4 font-normal"
+            />
+          </label>
+          <button
+            type="submit"
+            className="min-h-11 rounded-pill border border-brand-strong px-4 font-semibold text-brand-strong"
+          >
+            Show schedule
+          </button>
+        </form>
+
+        <BookingForm
+          key={date}
+          roomId={room.id}
+          date={date}
+          taken={taken}
+          pastUntil={pastUntil}
+        />
       </div>
     </div>
   );
