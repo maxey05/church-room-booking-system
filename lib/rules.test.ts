@@ -12,6 +12,7 @@ import {
   manilaNow,
   resolveDate,
   toggleHour,
+  validateBooking,
 } from "./rules.ts";
 
 function checkDateHelpers(): void {
@@ -109,5 +110,58 @@ assert.deepEqual(toggleHour([9, 10, 11], 9), [10, 11]);
 assert.deepEqual(toggleHour([9, 10, 11], 11), [9, 10]);
 assert.deepEqual(toggleHour([9, 10, 11], 10), [10]);
 assert.deepEqual(toggleHour([9], 9), []);
+
+const bookingNow = new Date("2026-11-13T02:30:00Z");
+const base = {
+  name: "Ana Cruz",
+  email: "ana@example.com",
+  contact: "09171234567",
+  dgroupLeader: "",
+  consent: true,
+  date: "2026-11-14",
+  hours: [19, 18],
+};
+const check = (patch: Partial<typeof base>) =>
+  validateBooking({ ...base, ...patch }, bookingNow);
+
+assert.equal(check({}), null);
+assert.equal(check({ contact: "+639171234567" }), null);
+assert.equal(check({ contact: "0917-123-4567" }), null);
+assert.equal(check({ contact: "0917 123 4567" }), null);
+assert.equal(check({ name: "   " }), "Please enter your name.");
+assert.equal(check({ email: "ana@example" }), "Please enter a valid email address.");
+assert.equal(
+  check({ contact: "12345" }),
+  "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
+);
+assert.equal(check({ consent: false }), "Please agree to the privacy notice.");
+assert.equal(check({ date: "" }), "Please pick a date.");
+assert.equal(check({ date: "2026-02-30" }), "Please pick a date.");
+assert.equal(check({ hours: [] }), "Please pick at least one time slot.");
+assert.equal(check({ hours: [6] }), "Invalid time slot.");
+assert.equal(check({ hours: [22] }), "Invalid time slot.");
+assert.equal(check({ hours: [NaN] }), "Invalid time slot.");
+assert.equal(
+  check({ hours: [9, 11] }),
+  "Please pick time slots that are next to each other.",
+);
+assert.equal(
+  check({ hours: [9, 9] }),
+  "Please pick time slots that are next to each other.",
+);
+assert.equal(check({ hours: HOURS }), null);
+const windowMessage = "You can book from today up to 30 days ahead.";
+assert.equal(check({ date: "2026-11-12" }), windowMessage);
+assert.equal(check({ date: "2026-12-14" }), windowMessage);
+assert.equal(check({ date: "2026-12-13" }), null);
+assert.equal(
+  check({ date: "2026-11-13", hours: [10] }),
+  "That time slot has already started or passed.",
+);
+assert.equal(check({ date: "2026-11-13", hours: [11] }), null);
+assert.equal(
+  check({ name: "", email: "bad", contact: "1", consent: false }),
+  "Please enter your name.",
+);
 
 console.log("lib/rules.test.ts: all checks passed");

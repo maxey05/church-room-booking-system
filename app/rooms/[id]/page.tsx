@@ -109,6 +109,8 @@ export default async function RoomPage({
         <BookingForm
           key={date}
           roomId={room.id}
+          roomName={room.name}
+          floor={room.floor}
           date={date}
           taken={taken}
           pastUntil={pastUntil}

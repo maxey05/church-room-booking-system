@@ -95,6 +95,50 @@ export function formatDate(date: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
+export type BookingInput = {
+  name: string;
+  email: string;
+  contact: string;
+  dgroupLeader: string;
+  consent: boolean;
+  date: string;
+  hours: number[];
+};
+
+function isRealDate(date: string): boolean {
+  try {
+    return addDays(date, 0) === date;
+  } catch {
+    return false;
+  }
+}
+
+export function validateBooking(b: BookingInput, now: Date = new Date()): string | null {
+  if (!b.name.trim()) return "Please enter your name.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
+    return "Please enter a valid email address.";
+  }
+  if (!/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))) {
+    return "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
+  }
+  if (!b.consent) return "Please agree to the privacy notice.";
+  if (!isRealDate(b.date)) return "Please pick a date.";
+  if (b.hours.length === 0) return "Please pick at least one time slot.";
+  if (b.hours.some((h) => !HOURS.includes(h))) return "Invalid time slot.";
+  const sorted = [...b.hours].sort((a, c) => a - c);
+  if (sorted.some((h, i) => i > 0 && h !== sorted[i - 1] + 1)) {
+    return "Please pick time slots that are next to each other.";
+  }
+  const today = manilaNow(now);
+  if (b.date < today.date || b.date > addDays(today.date, MAX_DAYS_AHEAD)) {
+    return "You can book from today up to 30 days ahead.";
+  }
+  if (b.date === today.date && sorted[0] <= today.hour) {
+    return "That time slot has already started or passed.";
+  }
+  return null;
+}
+
 export function groupByToken<T extends { cancel_token: string; hour: number }>(
   rows: T[],
 ): (T & { hours: number[] })[] {
