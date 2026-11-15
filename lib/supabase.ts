@@ -1,6 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export type Room = {
   id: number;
@@ -67,4 +68,25 @@ export async function authClient(): Promise<SupabaseClient> {
       },
     },
   });
+}
+
+export function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const allowed = requireEnv("ADMIN_EMAILS")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.toLowerCase());
+}
+
+export async function getAdmin(): Promise<User | null> {
+  const { data, error } = await (await authClient()).auth.getUser();
+  if (error || !data.user || !isAdminEmail(data.user.email)) return null;
+  return data.user;
+}
+
+export async function requireAdmin(): Promise<User> {
+  const user = await getAdmin();
+  if (!user) redirect("/admin/login");
+  return user;
 }

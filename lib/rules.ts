@@ -105,7 +105,7 @@ export type BookingInput = {
   hours: number[];
 };
 
-function isRealDate(date: string): boolean {
+export function isRealDate(date: string): boolean {
   try {
     return addDays(date, 0) === date;
   } catch {
@@ -136,6 +136,32 @@ export function validateBooking(b: BookingInput, now: Date = new Date()): string
   if (b.date === today.date && sorted[0] <= today.hour) {
     return "That time slot has already started or passed.";
   }
+  return null;
+}
+
+export function byFloorThenName(
+  a: { floor: number; name: string },
+  b: { floor: number; name: string },
+): number {
+  return a.floor - b.floor || a.name.localeCompare(b.name, undefined, { numeric: true });
+}
+
+export type BlockInput = { date: string; from: number; to: number; label: string };
+
+export function validateBlock(b: BlockInput): string | null {
+  if (!isRealDate(b.date)) return "Please pick a date.";
+  if (
+    !Number.isInteger(b.from) ||
+    !Number.isInteger(b.to) ||
+    b.from < OPEN_HOUR ||
+    b.to > CLOSE_HOUR
+  ) {
+    return `Pick hours between ${formatHour(OPEN_HOUR)} and ${formatHour(CLOSE_HOUR)}.`;
+  }
+  if (b.from >= b.to) return "The end hour must be after the start hour.";
+  const label = b.label.trim();
+  if (!label) return "Please enter a label.";
+  if (label.length > 80) return "The label must be 80 characters or fewer.";
   return null;
 }
 

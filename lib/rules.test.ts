@@ -5,13 +5,16 @@ import {
   MAX_DAYS_AHEAD,
   OPEN_HOUR,
   addDays,
+  byFloorThenName,
   formatDate,
   formatHour,
   formatRange,
   groupByToken,
+  isRealDate,
   manilaNow,
   resolveDate,
   toggleHour,
+  validateBlock,
   validateBooking,
 } from "./rules.ts";
 
@@ -162,6 +165,46 @@ assert.equal(check({ date: "2026-11-13", hours: [11] }), null);
 assert.equal(
   check({ name: "", email: "bad", contact: "1", consent: false }),
   "Please enter your name.",
+);
+
+const blockBase = { date: "2026-11-14", from: 7, to: 12, label: "Sunday Service" };
+const block = (patch: Partial<typeof blockBase>) => validateBlock({ ...blockBase, ...patch });
+const hoursMessage = "Pick hours between 7:00 AM and 10:00 PM.";
+
+assert.equal(block({}), null);
+assert.equal(block({ from: 21, to: 22 }), null);
+assert.equal(block({ from: 7, to: 22 }), null);
+assert.equal(block({ date: "2020-01-01" }), null);
+assert.equal(block({ label: "  Sunday  " }), null);
+assert.equal(block({ label: "x".repeat(80) }), null);
+assert.equal(block({ date: "" }), "Please pick a date.");
+assert.equal(block({ date: "2026-02-30" }), "Please pick a date.");
+assert.equal(block({ from: 10, to: 10 }), "The end hour must be after the start hour.");
+assert.equal(block({ from: 12, to: 8 }), "The end hour must be after the start hour.");
+assert.equal(block({ to: 23 }), hoursMessage);
+assert.equal(block({ from: 6 }), hoursMessage);
+assert.equal(block({ from: NaN }), hoursMessage);
+assert.equal(block({ to: 9.5 }), hoursMessage);
+assert.equal(block({ label: "   " }), "Please enter a label.");
+assert.equal(block({ label: "" }), "Please enter a label.");
+assert.equal(
+  block({ label: "x".repeat(81) }),
+  "The label must be 80 characters or fewer.",
+);
+
+assert.equal(isRealDate("2026-11-14"), true);
+assert.equal(isRealDate("2026-02-30"), false);
+assert.equal(isRealDate(""), false);
+
+const sortedRooms = [
+  { floor: 2, name: "Room 10" },
+  { floor: 2, name: "Room 2" },
+  { floor: 1, name: "G5" },
+  { floor: 1, name: "G4" },
+].sort(byFloorThenName);
+assert.deepEqual(
+  sortedRooms.map((r) => r.name),
+  ["G4", "G5", "Room 2", "Room 10"],
 );
 
 console.log("lib/rules.test.ts: all checks passed");
