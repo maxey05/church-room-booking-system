@@ -46,8 +46,8 @@ function fit(floor: number, box: Box) {
 }
 
 const SHAPE_CLASS: Record<Exclude<PlanShape["kind"], "elevator">, string> = {
-  block: "rounded-md border-[1.5px] border-outline-soft bg-surface/50",
-  space: "rounded-xl border-[1.5px] border-dashed border-outline",
+  block: "rounded-sm border-[1.5px] border-outline-soft bg-surface/50",
+  space: "rounded-md border-[1.5px] border-dashed border-outline",
 };
 
 function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
@@ -57,7 +57,7 @@ function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
       <div
         aria-hidden="true"
         style={style}
-        className="absolute box-border flex flex-col items-center gap-[3px] rounded-[5px] border-[1.5px] border-outline bg-surface/80 p-[3px]"
+        className="absolute box-border flex flex-col items-center gap-[3px] rounded-[4px] border-[1.5px] border-outline bg-surface/80 p-[3px]"
       >
         <div className="box-border h-1.5 w-[34%] rounded-xs border-[1.5px] border-outline" />
         <div className="flex w-full flex-1 gap-0.5">
@@ -150,7 +150,7 @@ function Layer({
                   if (id !== undefined) onPick(id);
                 }}
                 style={place(r.x, r.y, plan.bounds)}
-                className={`absolute box-border flex items-center justify-center rounded-[10px] border-[1.5px] p-0.5 text-center leading-[1.15] font-semibold ${motion} ${
+                className={`absolute box-border flex items-center justify-center rounded-md border-[1.5px] p-0.5 text-center leading-[1.15] font-semibold ${motion} ${
                   id === undefined
                     ? "cursor-not-allowed border-outline-soft bg-transparent text-ink-muted"
                     : on
@@ -165,8 +165,8 @@ function Layer({
           })}
         </>
       ) : (
-        <div className="absolute inset-0 box-border flex flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-outline p-6 text-center">
-          <span className="mb-1.5 grid size-12 place-items-center rounded-[14px] bg-surface/75 text-brand-strong">
+        <div className="absolute inset-0 box-border flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-outline p-6 text-center">
+          <span className="mb-1.5 grid size-12 place-items-center rounded-lg bg-surface/75 text-brand-strong">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
@@ -250,49 +250,41 @@ export default function FloorPlan({
     <section
       aria-labelledby="plan-title"
       style={{ animationDelay: "620ms" }}
-      className="rise flex min-h-0 min-w-0 flex-col rounded-[20px] bg-surface p-3.5 lg:px-5 lg:pt-[18px] lg:pb-5"
+      className="rise flex min-h-0 min-w-0 flex-col rounded-lg bg-surface p-3.5 lg:px-4 lg:pt-3.5 lg:pb-4"
     >
-      <div className="mb-3 flex min-h-8 items-center justify-between gap-2.5">
+      <div className="mb-2.5 flex min-h-8 items-center justify-between gap-2.5">
         <h2
           id="plan-title"
           aria-live="polite"
           className="text-lg leading-tight font-semibold tracking-[-0.02em] whitespace-nowrap md:text-xl"
         >
           {label}{" "}
-          <span className="font-medium text-ink-muted">
+          <span className="text-sm font-medium tracking-normal text-ink-muted">
             ·{" "}
             {plan
               ? `${roomCount} ${roomCount === 1 ? "room" : "rooms"}`
               : "Plan coming soon"}
           </span>
         </h2>
-        <span
-          className={`inline-flex min-w-0 items-center gap-1.5 rounded-pill px-3 py-[5px] text-[13px] font-semibold whitespace-nowrap motion-safe:transition-colors motion-safe:duration-300 ${
-            picked ? "bg-brand-soft text-brand-strong" : "bg-mist text-ink-muted"
-          }`}
-        >
-          {picked ? (
-            <>
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="size-3.5 flex-none"
-              >
-                <path d="M5 12.5l4.5 4.5L19 7.5" />
-              </svg>
-              <span className="truncate">
-                {picked.name} · {picked.floor}F picked
-              </span>
-            </>
-          ) : (
-            <span className="truncate">{plan ? "Tap a room" : "Try 1F or 2F"}</span>
-          )}
-        </span>
+        {picked && (
+          <span className="inline-flex min-w-0 items-center gap-1.5 rounded-pill bg-brand-soft px-3 py-[5px] text-[13px] font-semibold whitespace-nowrap text-brand-strong">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-3.5 flex-none"
+            >
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+            <span className="truncate">
+              {picked.name} · {picked.floor}F picked
+            </span>
+          </span>
+        )}
       </div>
 
       <div
@@ -303,7 +295,7 @@ export default function FloorPlan({
           style={
             stage ? { width: stage.sw, height: stage.sh } : { width: 0, height: 0 }
           }
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[18px] bg-brand-soft ${
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg bg-brand-soft ${
             leaving.length > 0
               ? "motion-safe:transition-[width,height] motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.2,0.7,0.2,1)]"
               : ""
