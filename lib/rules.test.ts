@@ -16,6 +16,7 @@ import {
   toggleHour,
   validateBlock,
   validateBooking,
+  validateFields,
 } from "./rules.ts";
 
 function checkDateHelpers(): void {
@@ -205,6 +206,20 @@ const sortedRooms = [
 assert.deepEqual(
   sortedRooms.map((r) => r.name),
   ["G4", "G5", "Room 2", "Room 10"],
+);
+
+assert.deepEqual(
+  validateFields({ name: "Ana", email: "ana@example.com", contact: "0917 123 4567", consent: true }),
+  {},
+);
+assert.deepEqual(
+  validateFields({ name: " ", email: "nope", contact: "123", consent: false }),
+  {
+    name: "Please enter your name.",
+    email: "Please enter a valid email address.",
+    contact: "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
+    consent: "Please agree to the privacy notice.",
+  },
 );
 
 console.log("lib/rules.test.ts: all checks passed");
