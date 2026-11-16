@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { HOURS, formatRange } from "@/lib/rules";
-import { HeroTitle, Reveal } from "./landing-motion";
+import BookingDemo from "./booking-demo";
+import { HeroTitle, Replay, Reveal } from "./landing-motion";
 
 type Box = {
   l: number;
@@ -21,41 +23,12 @@ const BOX_CLASS = {
     "border-brand-strong bg-brand-strong text-navy-ink shadow-lg shadow-brand-strong/30",
 };
 
-const HERO_PLAN: Box[] = [
-  { l: 1, t: 1, w: 9, h: 11 },
-  { l: 12, t: 4, w: 7, h: 8, kind: "stairs" },
-  { l: 21, t: 2, w: 10, h: 10 },
-  { l: 33, t: 4, w: 7, h: 8, kind: "stairs" },
-  { l: 1, t: 14, w: 50, h: 4 },
-  { l: 8, t: 19, w: 35, h: 37, kind: "space" },
-  { l: 45, t: 19, w: 35, h: 23, kind: "picked", name: "G7" },
-  { l: 45, t: 44, w: 35, h: 37, kind: "space" },
-  { l: 8, t: 58, w: 35, h: 23, name: "G4" },
-  { l: 82, t: 44, w: 17, h: 18, name: "Singles Lounge" },
-  { l: 63, t: 83, w: 17, h: 16, name: "G5" },
-];
-
 const STEP_PLAN: Box[] = [
   { l: 6, t: 10, w: 40, h: 44, kind: "space" },
   { l: 50, t: 10, w: 44, h: 34, kind: "picked", name: "G7" },
   { l: 6, t: 60, w: 40, h: 30, name: "G4" },
   { l: 50, t: 50, w: 22, h: 40, kind: "space" },
   { l: 76, t: 50, w: 18, h: 40, name: "G5" },
-];
-
-const HERO_SLOTS: [string, "free" | "taken" | "picked"][] = [
-  ["7 AM", "free"],
-  ["8 AM", "taken"],
-  ["9 AM", "taken"],
-  ["10 AM", "free"],
-  ["11 AM", "free"],
-  ["12 PM", "free"],
-  ["1 PM", "free"],
-  ["2 PM", "picked"],
-  ["3 PM", "picked"],
-  ["4 PM", "picked"],
-  ["5 PM", "free"],
-  ["6 PM", "taken"],
 ];
 
 const STEP_SLOTS: [string, "free" | "taken" | "picked"][] = [
@@ -97,7 +70,7 @@ function Arrow() {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="size-4 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover:translate-x-0.5"
+      className="size-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:delay-75 motion-safe:group-hover:translate-x-0.5"
     >
       <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
@@ -135,12 +108,11 @@ function StepRow({
           </h3>
           <p className="max-w-md text-base text-ink-muted md:text-[17px]">{text}</p>
         </div>
-        <div
-          aria-hidden="true"
+        <Replay
           className="relative h-64 overflow-hidden rounded-[20px] bg-surface md:h-72"
         >
           {children}
-        </div>
+        </Replay>
       </Reveal>
     </li>
   );
@@ -149,12 +121,12 @@ function StepRow({
 export default function Home() {
   return (
     <div className="pb-4">
-      <section className="pt-8 pb-10 text-center md:pt-20 md:pb-14">
-        <HeroTitle className="mx-auto max-w-[15ch] text-[40px] leading-[1.08] font-medium tracking-[-0.035em] text-navy md:text-[64px]" />
-        <p className="rise mx-auto mt-5 max-w-xl text-lg tracking-[-0.01em] text-ink-muted [animation-delay:250ms] md:text-xl">
+      <section className="pt-2 pb-10 text-center md:pt-10 md:pb-14">
+        <HeroTitle className="rise mx-auto max-w-[15ch] text-[40px] leading-[1.08] font-medium tracking-[-0.035em] text-navy md:text-[64px] [animation-delay:100ms]" />
+        <p className="rise mx-auto mt-5 max-w-xl text-lg tracking-[-0.01em] text-ink-muted [animation-delay:300ms] md:text-xl">
           Book your D-group meetings in CCF Alabang with ease.
         </p>
-        <p className="rise mt-4 inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-ink [animation-delay:400ms]">
+        <p className="rise mt-4 inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-ink [animation-delay:450ms]">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -169,10 +141,10 @@ export default function Home() {
           </svg>
           Open {formatRange(HOURS)}
         </p>
-        <div className="rise mt-8 flex justify-center [animation-delay:550ms]">
+        <div className="rise mt-8 flex justify-center [animation-delay:600ms]">
           <Link
             href="/rooms"
-            className="group inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-pill bg-navy px-7 text-base font-semibold text-navy-ink shadow-navy/40 hover:bg-ink motion-safe:transition-[background-color,transform,box-shadow] motion-safe:duration-150 motion-safe:hover:-translate-y-px motion-safe:hover:shadow-lg sm:w-auto"
+            className="group inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-pill bg-navy px-7 text-base font-semibold text-navy-ink hover:bg-brand-strong motion-safe:transition-colors motion-safe:duration-300 motion-safe:delay-75 sm:w-auto"
           >
             Book a room
             <Arrow />
@@ -180,74 +152,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div
-        role="img"
-        aria-label="Preview of the booking screen: the first floor plan with room G7 selected and 2:00 PM to 5:00 PM picked"
-        className="rise mx-auto max-w-[1000px] overflow-hidden rounded-[20px] border border-line bg-surface shadow-2xl shadow-navy/15 [animation-delay:700ms]"
-      >
-        <div aria-hidden="true">
-          <div className="flex h-9 items-center gap-1.5 border-b border-line bg-bg px-3.5">
-            <span className="size-2.5 rounded-full bg-line" />
-            <span className="size-2.5 rounded-full bg-line" />
-            <span className="size-2.5 rounded-full bg-line" />
-            <span className="ml-3 rounded-pill bg-mist px-2.5 py-0.5 text-[11px] font-medium text-ink-muted">
-              1F · Choose a room
-            </span>
-          </div>
-          <div className="grid gap-4 bg-brand-soft p-4 lg:grid-cols-[72px_minmax(0,1fr)_300px] lg:gap-5 lg:p-6">
-            <div className="grid grid-cols-6 gap-1.5 lg:flex lg:flex-col-reverse lg:justify-center">
-              {[1, 2, 3, 4, 5, 6].map((f) => (
-                <span
-                  key={f}
-                  className={`grid h-9.5 place-items-center rounded-[10px] border text-sm font-bold ${
-                    f === 1
-                      ? "border-brand-strong bg-brand-strong text-navy-ink"
-                      : "border-surface/90 bg-surface/55 text-navy"
-                  }`}
-                >
-                  {f}F
-                </span>
-              ))}
-            </div>
-            <div className="relative aspect-4/3 rounded-2xl border border-surface/90 bg-surface/55">
-              {HERO_PLAN.map((b, i) => (
-                <span
-                  key={i}
-                  style={boxStyle(b)}
-                  className={`absolute grid place-items-center rounded-lg border-[1.5px] text-center text-[11px] leading-tight font-semibold md:text-xs ${BOX_CLASS[b.kind ?? "plain"]}`}
-                >
-                  {b.name}
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
-              <div className="rounded-2xl border border-line bg-surface p-3.5">
-                <div className="mb-2.5 flex justify-between text-[13px] font-semibold text-navy">
-                  <span>Sat, Nov 28</span>
-                  <span className="font-medium text-ink-muted">G7</span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {HERO_SLOTS.map(([label, state]) => (
-                    <span
-                      key={label}
-                      className={`grid h-8.5 place-items-center rounded-[10px] border text-xs font-medium ${SLOT_CLASS[state]}`}
-                    >
-                      {state === "picked" ? `${label} ✓` : label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-navy p-3.5 text-[13px] text-navy-ink">
-                <p className="text-[15px] font-bold">G7 · Floor 1</p>
-                <p className="mt-0.5 opacity-80">Sat, Nov 28 · 2:00 PM – 5:00 PM</p>
-                <span className="mt-3 grid h-9.5 place-items-center rounded-pill bg-surface font-semibold text-navy">
-                  Continue
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BookingDemo />
 
       <section
         id="how"
@@ -257,7 +162,7 @@ export default function Home() {
         <Reveal className="mx-auto max-w-xl text-center">
           <h2
             id="how-title"
-            className="text-3xl leading-tight font-medium tracking-[-0.03em] md:text-[40px]"
+            className="text-4xl leading-tight font-medium tracking-[-0.03em] md:text-[52px]"
           >
             Three steps. <span className="text-brand-strong">That’s it.</span>
           </h2>
@@ -373,13 +278,20 @@ export default function Home() {
         </ol>
       </section>
 
-      <Reveal className="mt-20 rounded-card-mobile bg-navy px-6 py-12 text-center md:mt-28 md:rounded-[28px] md:py-18">
-        <h2 className="mx-auto max-w-[22ch] text-3xl leading-tight font-medium tracking-[-0.03em] text-navy-ink md:text-[40px]">
+      <Reveal className="flex flex-col items-center px-6 pt-24 pb-16 text-center md:pt-32 md:pb-24">
+        <Image
+          src="/ccf-icon.png"
+          alt=""
+          width={512}
+          height={512}
+          className="size-14 rounded-2xl md:size-16"
+        />
+        <h2 className="mx-auto mt-6 max-w-[22ch] text-3xl leading-tight font-medium tracking-[-0.03em] text-navy md:text-[40px]">
           Ready for your next <span className="whitespace-nowrap">D-group</span> meeting?
         </h2>
         <Link
           href="/rooms"
-          className="group mt-8 inline-flex min-h-13 items-center justify-center gap-2 rounded-pill bg-surface px-7 text-base font-semibold text-navy hover:bg-brand-soft motion-safe:transition-[background-color,transform] motion-safe:duration-150 motion-safe:hover:-translate-y-px"
+          className="group mt-8 inline-flex min-h-13 items-center justify-center gap-2 rounded-pill bg-navy px-7 text-base font-semibold text-navy-ink hover:bg-brand-strong motion-safe:transition-colors motion-safe:duration-300 motion-safe:delay-75"
         >
           Book a room
           <Arrow />
