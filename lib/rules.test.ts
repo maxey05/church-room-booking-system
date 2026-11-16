@@ -138,7 +138,7 @@ assert.equal(
   check({ contact: "12345" }),
   "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
 );
-assert.equal(check({ consent: false }), "Please agree to the privacy notice.");
+assert.equal(check({ consent: false }), "Please tick the box to continue.");
 assert.equal(check({ date: "" }), "Please pick a date.");
 assert.equal(check({ date: "2026-02-30" }), "Please pick a date.");
 assert.equal(check({ hours: [] }), "Please pick at least one time slot.");
@@ -218,7 +218,7 @@ assert.deepEqual(
     name: "Please enter your name.",
     email: "Please enter a valid email address.",
     contact: "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
-    consent: "Please agree to the privacy notice.",
+    consent: "Please tick the box to continue.",
   },
 );
 
