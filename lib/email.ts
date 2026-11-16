@@ -30,10 +30,10 @@ export async function sendConfirmation(b: {
     `${requireEnv("SITE_URL")}/cancel/${b.cancelToken}`,
     "",
     "See you there!",
-    "CCF Room Booking",
+    "CCF Alabang Room Booking",
   ].join("\n");
   await transport.sendMail({
-    from: `"CCF Room Booking" <${user}>`,
+    from: `"CCF Alabang Room Booking" <${user}>`,
     to: b.to,
     subject: `Room reserved: ${b.roomName} — ${formatDate(b.date)}`,
     text,
