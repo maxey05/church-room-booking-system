@@ -113,15 +113,32 @@ export function isRealDate(date: string): boolean {
   }
 }
 
-export function validateBooking(b: BookingInput, now: Date = new Date()): string | null {
-  if (!b.name.trim()) return "Please enter your name.";
+export type FieldErrors = {
+  name?: string;
+  email?: string;
+  contact?: string;
+  consent?: string;
+};
+
+export function validateFields(
+  b: Pick<BookingInput, "name" | "email" | "contact" | "consent">,
+): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!b.name.trim()) errors.name = "Please enter your name.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
-    return "Please enter a valid email address.";
+    errors.email = "Please enter a valid email address.";
   }
   if (!/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))) {
-    return "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
+    errors.contact = "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
   }
-  if (!b.consent) return "Please agree to the privacy notice.";
+  if (!b.consent) errors.consent = "Please agree to the privacy notice.";
+  return errors;
+}
+
+export function validateBooking(b: BookingInput, now: Date = new Date()): string | null {
+  const fields = validateFields(b);
+  const firstField = fields.name ?? fields.email ?? fields.contact ?? fields.consent;
+  if (firstField) return firstField;
   if (!isRealDate(b.date)) return "Please pick a date.";
   if (b.hours.length === 0) return "Please pick at least one time slot.";
   if (b.hours.some((h) => !HOURS.includes(h))) return "Invalid time slot.";
