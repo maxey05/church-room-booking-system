@@ -86,9 +86,13 @@ export default function RouteProgress() {
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPop);
+    window.addEventListener("progress:start", start);
+    window.addEventListener("progress:finish", finish);
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPop);
+      window.removeEventListener("progress:start", start);
+      window.removeEventListener("progress:finish", finish);
       clear();
       reset();
       controls.current = null;
