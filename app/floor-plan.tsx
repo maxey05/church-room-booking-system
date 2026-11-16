@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { FLOOR_PLANS, type PlanShape, type Range } from "@/lib/floorplans";
 
 type PlanBounds = readonly [number, number, number, number];
+type Box = { w: number; h: number; pad: number };
+type Room = { id: number; name: string; floor: number };
+
+const LEAVE_MS = 520;
+const PAD_DESKTOP = 16;
+const PAD_PHONE = 10;
+
+const motion =
+  "motion-safe:transition-[background-color,border-color,box-shadow,color] motion-safe:duration-250 motion-safe:ease-out";
 
 function place(x: Range, y: Range, b: PlanBounds) {
   const w = b[2] - b[0];
@@ -17,16 +25,30 @@ function place(x: Range, y: Range, b: PlanBounds) {
   };
 }
 
-const SHAPE_CLASS: Record<Exclude<PlanShape["kind"], "elevator">, string> = {
-  block: "rounded border border-outline md:rounded-md md:border-[1.5px]",
-  stairs:
-    "rounded border border-outline p-[3px] bg-origin-content bg-clip-content bg-[repeating-linear-gradient(to_bottom,transparent_0_4px,var(--color-outline-soft)_4px_5px)] md:rounded-md md:border-[1.5px] md:p-[5px] md:bg-[repeating-linear-gradient(to_bottom,transparent_0_7px,var(--color-outline-soft)_7px_8.5px)]",
-  space:
-    "rounded-lg border border-dashed border-outline md:rounded-xl md:border-[1.5px]",
-};
+function ratioOf(floor: number): number {
+  const plan = FLOOR_PLANS[floor] ?? FLOOR_PLANS[1];
+  if (!plan) return 1;
+  return (plan.bounds[2] - plan.bounds[0]) / (plan.bounds[3] - plan.bounds[1]);
+}
 
-const STAGE_WIDTH =
-  "relative mx-auto max-w-[580px] w-[min(100%,max(15rem,calc((100dvh_-_24rem)*var(--ratio))))] lg:w-[min(100%,max(18rem,calc((100dvh_-_20rem)*var(--ratio))))]";
+function fit(floor: number, box: Box) {
+  const r = ratioOf(floor);
+  const availW = Math.max(box.w - 2 * box.pad, 120);
+  const availH = Math.max(box.h - 2 * box.pad, 120);
+  const pw = Math.min(availW, availH * r, 640);
+  const ph = pw / r;
+  return {
+    pw: Math.round(pw),
+    ph: Math.round(ph),
+    sw: Math.round(pw + 2 * box.pad),
+    sh: Math.round(ph + 2 * box.pad),
+  };
+}
+
+const SHAPE_CLASS: Record<Exclude<PlanShape["kind"], "elevator">, string> = {
+  block: "rounded-md border-[1.5px] border-outline-soft bg-surface/50",
+  space: "rounded-xl border-[1.5px] border-dashed border-outline",
+};
 
 function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
   const style = place(shape.x, shape.y, bounds);
@@ -35,12 +57,12 @@ function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
       <div
         aria-hidden="true"
         style={style}
-        className="absolute box-border flex flex-col items-center gap-0.5 rounded-[3px] border border-outline bg-surface/80 p-0.5 md:gap-1 md:rounded-[5px] md:border-[1.5px] md:p-1"
+        className="absolute box-border flex flex-col items-center gap-[3px] rounded-[5px] border-[1.5px] border-outline bg-surface/80 p-[3px]"
       >
-        <div className="box-border h-1 w-[34%] rounded-[1px] border border-outline md:h-[7px] md:rounded-sm md:border-[1.5px]" />
-        <div className="flex w-full flex-1 gap-px md:gap-0.5">
-          <div className="box-border flex-1 rounded-[1px] border border-outline bg-linear-to-r from-mist to-line md:rounded-sm md:border-[1.5px]" />
-          <div className="box-border flex-1 rounded-[1px] border border-outline bg-linear-to-r from-line to-mist md:rounded-sm md:border-[1.5px]" />
+        <div className="box-border h-1.5 w-[34%] rounded-xs border-[1.5px] border-outline" />
+        <div className="flex w-full flex-1 gap-0.5">
+          <div className="box-border flex-1 rounded-xs border-[1.5px] border-outline bg-linear-to-r from-mist to-line" />
+          <div className="box-border flex-1 rounded-xs border-[1.5px] border-outline bg-linear-to-r from-line to-mist" />
         </div>
       </div>
     );
@@ -54,43 +76,59 @@ function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
   );
 }
 
-export default function FloorPlan({
+function CheckMark() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="absolute top-[7%] right-[7%] size-[1.05em]"
+    >
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+function Layer({
   floor,
+  box,
   rooms,
+  pickedId,
+  onPick,
+  leaving,
 }: {
   floor: number;
-  rooms: { id: number; name: string }[];
+  box: Box;
+  rooms: Room[];
+  pickedId: number | null;
+  onPick: (id: number) => void;
+  leaving: boolean;
 }) {
-  const [pickedId, setPickedId] = useState<number | null>(null);
   const plan = FLOOR_PLANS[floor];
   const label = `${floor}F`;
-  const idByName = new Map(rooms.map((r) => [r.name, r.id]));
-  const picked = rooms.find((r) => r.id === pickedId) ?? null;
-  const roomCount = plan
-    ? plan.rooms.filter((r) => idByName.has(r.name)).length
-    : 0;
-  const basis = plan ?? FLOOR_PLANS[1];
-  const ratio = basis
-    ? (basis.bounds[2] - basis.bounds[0]) / (basis.bounds[3] - basis.bounds[1])
-    : 1;
-  const stageStyle = { aspectRatio: ratio, "--ratio": ratio } as CSSProperties;
+  const size = fit(floor, box);
+  const style: CSSProperties = {
+    width: size.pw,
+    height: size.ph,
+    fontSize: Math.max(10.5, Math.min(14, size.pw / 36)),
+  };
+  const idByName = new Map(
+    rooms.filter((r) => r.floor === floor).map((r) => [r.name, r.id]),
+  );
 
   return (
-    <section
-      aria-label="Floor plan"
-      className="relative box-border min-w-0 rounded-[22px] border border-surface/70 bg-surface/50 p-3 shadow-xl shadow-navy/8 lg:w-[720px] lg:flex-none lg:rounded-[30px] lg:px-8 lg:py-6 lg:backdrop-blur-[28px] lg:backdrop-saturate-150"
+    <div
+      inert={leaving}
+      aria-hidden={leaving ? true : undefined}
+      style={style}
+      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${leaving ? "plan-out" : "plan-in"}`}
     >
-      <div className="mb-3.5 flex items-center gap-2.5 px-1.5 lg:mb-5 lg:gap-3 lg:px-0">
-        <h2 className="text-xl lg:text-[22px]">{label}</h2>
-        <span className="rounded-pill bg-brand-tint px-2.5 py-1 text-[13px] font-semibold text-navy lg:px-3 lg:py-1.5">
-          {plan
-            ? `${roomCount} ${roomCount === 1 ? "room" : "rooms"}`
-            : "Plan coming soon"}
-        </span>
-      </div>
-
       {plan ? (
-        <div className={STAGE_WIDTH} style={stageStyle}>
+        <>
           {plan.shapes.map((shape, i) => (
             <Shape key={i} shape={shape} bounds={plan.bounds} />
           ))}
@@ -109,57 +147,181 @@ export default function FloorPlan({
                     : `${r.name}, ${label}`
                 }
                 onClick={() => {
-                  if (id !== undefined) setPickedId(id);
+                  if (id !== undefined) onPick(id);
                 }}
                 style={place(r.x, r.y, plan.bounds)}
-                className={`absolute box-border flex items-center justify-center rounded-[7px] border-[1.5px] px-0.5 text-center text-xs leading-tight font-semibold motion-safe:transition-[box-shadow,background-color] motion-safe:duration-150 md:rounded-[10px] md:border-2 md:p-1 md:text-sm ${
+                className={`absolute box-border flex items-center justify-center rounded-[10px] border-[1.5px] p-0.5 text-center leading-[1.15] font-semibold ${motion} ${
                   id === undefined
-                    ? "cursor-not-allowed border-outline bg-transparent text-ink-muted"
+                    ? "cursor-not-allowed border-outline-soft bg-transparent text-ink-muted"
                     : on
-                      ? "border-brand-strong bg-brand-strong text-navy-ink"
-                      : "border-brand bg-transparent text-brand-strong hover:ring-4 hover:ring-brand/20 hover:ring-inset"
+                      ? "border-brand-strong bg-brand-strong text-navy-ink shadow-[0_12px_24px_-12px] shadow-brand-strong/80"
+                      : "border-outline bg-surface/90 text-navy hover:border-brand hover:bg-surface hover:text-brand-strong hover:shadow-[0_10px_20px_-14px] hover:shadow-navy/50 hover:ring-3 hover:ring-brand/20"
                 }`}
               >
-                {r.name}
+                {on && <CheckMark />}
+                <span>{r.name}</span>
               </button>
             );
           })}
-        </div>
+        </>
       ) : (
-        <div
-          style={stageStyle}
-          className={`${STAGE_WIDTH} box-border flex flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-outline p-5 text-center lg:gap-2 lg:rounded-2xl lg:p-6`}
-        >
-          <p className="text-lg font-bold lg:text-xl">No floor plan yet</p>
-          <p className="max-w-60 text-sm text-ink-muted lg:max-w-[340px] lg:text-[15px]">
+        <div className="absolute inset-0 box-border flex flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-outline p-6 text-center">
+          <span className="mb-1.5 grid size-12 place-items-center rounded-[14px] bg-surface/75 text-brand-strong">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-6"
+            >
+              <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z" />
+              <path d="M9 3v15M15 6v15" />
+            </svg>
+          </span>
+          <strong className="text-lg font-semibold tracking-[-0.01em] text-navy">
+            No floor plan yet
+          </strong>
+          <span className="max-w-[30ch] text-sm text-ink-muted">
             Rooms on {label} will appear here once the plan is added.
-          </p>
+          </span>
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="fixed inset-x-0 bottom-0 z-10 flex flex-col gap-2.5 border-t border-navy/8 bg-surface/90 px-4 pt-3 pb-7 backdrop-blur-xl lg:static lg:mt-5 lg:flex-row lg:items-center lg:justify-between lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-        <span
+export default function FloorPlan({
+  floor,
+  rooms,
+  picked,
+  onPick,
+}: {
+  floor: number;
+  rooms: Room[];
+  picked: Room | null;
+  onPick: (id: number) => void;
+}) {
+  const frame = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<Box | null>(null);
+  const [shown, setShown] = useState(floor);
+  const [leaving, setLeaving] = useState<number[]>([]);
+
+  if (shown !== floor) {
+    setLeaving([shown, ...leaving.filter((f) => f !== shown && f !== floor)]);
+    setShown(floor);
+  }
+
+  useEffect(() => {
+    if (leaving.length === 0) return;
+    const timer = window.setTimeout(() => setLeaving([]), LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leaving]);
+
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      setBox({
+        w: el.clientWidth,
+        h: el.clientHeight,
+        pad: window.matchMedia("(min-width: 1024px)").matches
+          ? PAD_DESKTOP
+          : PAD_PHONE,
+      });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const plan = FLOOR_PLANS[floor];
+  const label = `${floor}F`;
+  const roomCount = plan
+    ? plan.rooms.filter((r) =>
+        rooms.some((x) => x.floor === floor && x.name === r.name),
+      ).length
+    : 0;
+  const stage = box ? fit(floor, box) : null;
+  const layers = [floor, ...leaving.filter((f) => f !== floor)];
+
+  return (
+    <section
+      aria-labelledby="plan-title"
+      style={{ animationDelay: "620ms" }}
+      className="rise flex min-h-0 min-w-0 flex-col rounded-[20px] bg-surface p-3.5 lg:px-5 lg:pt-[18px] lg:pb-5"
+    >
+      <div className="mb-3 flex min-h-8 items-center justify-between gap-2.5">
+        <h2
+          id="plan-title"
           aria-live="polite"
-          className="text-center text-[15px] font-semibold text-ink empty:hidden lg:text-left lg:text-base lg:font-normal"
+          className="text-lg leading-tight font-semibold tracking-[-0.02em] whitespace-nowrap md:text-xl"
         >
-          {picked ? `${picked.name} · ${label}` : null}
+          {label}{" "}
+          <span className="font-medium text-ink-muted">
+            ·{" "}
+            {plan
+              ? `${roomCount} ${roomCount === 1 ? "room" : "rooms"}`
+              : "Plan coming soon"}
+          </span>
+        </h2>
+        <span
+          className={`inline-flex min-w-0 items-center gap-1.5 rounded-pill px-3 py-[5px] text-[13px] font-semibold whitespace-nowrap motion-safe:transition-colors motion-safe:duration-300 ${
+            picked ? "bg-brand-soft text-brand-strong" : "bg-mist text-ink-muted"
+          }`}
+        >
+          {picked ? (
+            <>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-3.5 flex-none"
+              >
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+              <span className="truncate">
+                {picked.name} · {picked.floor}F picked
+              </span>
+            </>
+          ) : (
+            <span className="truncate">{plan ? "Tap a room" : "Try 1F or 2F"}</span>
+          )}
         </span>
-        {picked ? (
-          <Link
-            href={`/rooms/${picked.id}`}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-pill bg-brand-strong px-7 text-base font-semibold text-navy-ink hover:bg-navy lg:ml-auto lg:w-auto lg:text-[15px]"
-          >
-            Continue
-          </Link>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-pill bg-line px-7 text-base font-semibold text-ink-muted lg:ml-auto lg:w-auto lg:text-[15px]"
-          >
-            Continue
-          </button>
-        )}
+      </div>
+
+      <div
+        ref={frame}
+        className="relative aspect-[0.9] max-h-[62dvh] flex-none lg:aspect-auto lg:max-h-none lg:min-h-0 lg:flex-1"
+      >
+        <div
+          style={
+            stage ? { width: stage.sw, height: stage.sh } : { width: 0, height: 0 }
+          }
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[18px] bg-brand-soft ${
+            leaving.length > 0
+              ? "motion-safe:transition-[width,height] motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.2,0.7,0.2,1)]"
+              : ""
+          }`}
+        >
+          {box &&
+            layers.map((f) => (
+              <Layer
+                key={f}
+                floor={f}
+                box={box}
+                rooms={rooms}
+                pickedId={picked?.id ?? null}
+                onPick={onPick}
+                leaving={f !== floor}
+              />
+            ))}
+        </div>
       </div>
     </section>
   );
