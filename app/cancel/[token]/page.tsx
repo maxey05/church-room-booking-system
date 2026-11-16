@@ -10,7 +10,7 @@ function View({ title, children }: { title: string; children: ReactNode }) {
       <h1>{title}</h1>
       {children}
       <Link
-        href="/"
+        href="/rooms"
         className="mt-6 inline-flex min-h-11 items-center text-brand-strong underline"
       >
         ← Back to rooms

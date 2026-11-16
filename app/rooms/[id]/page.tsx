@@ -43,7 +43,7 @@ export default async function RoomPage({
     <div className="grid gap-8 lg:grid-cols-3">
       <div>
         <Link
-          href={`/?floor=${room.floor}`}
+          href={`/rooms?floor=${room.floor}`}
           className="inline-flex min-h-11 items-center text-brand-strong underline"
         >
           ← Floor {room.floor} rooms

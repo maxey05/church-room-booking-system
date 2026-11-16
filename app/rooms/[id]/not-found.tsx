@@ -8,7 +8,7 @@ export default function RoomNotFound() {
         Sorry, we couldn&apos;t find that room. It may have been removed.
       </p>
       <Link
-        href="/"
+        href="/rooms"
         className="mt-4 inline-flex min-h-11 items-center text-brand-strong underline"
       >
         ← Back to all rooms
