@@ -2,7 +2,7 @@
 
 import { sendConfirmation } from "@/lib/email";
 import {
-  formatRange,
+  formatRange24,
   manilaNow,
   resolveDate,
   validateBooking,
@@ -118,7 +118,7 @@ export async function book(
     done: {
       room: `${room.name} · Floor ${room.floor}`,
       date: longDate.format(new Date(`${date}T00:00:00Z`)),
-      time: formatRange(hours),
+      time: formatRange24(hours),
       emailed,
       email: values.email,
     },
