@@ -18,7 +18,7 @@ create table bookings (
   hour int not null check (hour between 0 and 23),
   kind text not null default 'booking' check (kind in ('booking','block')),
   name text not null,                -- booker name, or block label
-  email text, contact text, dgroup_leader text,   -- null for blocks
+  email text, contact text, dgroup_leader text, notes text,   -- null for blocks
   cancel_token uuid not null default gen_random_uuid(),
   status text not null default 'booked' check (status in ('booked','cancelled')),
   created_at timestamptz not null default now()
