@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import RouteProgress from "./route-progress";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,11 +30,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg font-sans text-ink">
+        <RouteProgress />
         <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
           <div className="mx-auto grid h-16 w-full max-w-[1120px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 md:grid-cols-[1fr_auto_1fr] md:px-6 lg:px-8">
             <Link
               href="/"
-              className="flex min-w-0 items-center gap-2.5 justify-self-start"
+              className="rise flex min-w-0 items-center gap-2.5 justify-self-start"
             >
               <Image
                 src="/ccf-icon.png"
@@ -47,17 +49,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 CCF Alabang Room Booking
               </span>
             </Link>
-            <nav aria-label="Main">
+            <nav aria-label="Main" className="rise [animation-delay:80ms]">
               <Link
                 href="/#how"
-                className="relative inline-flex min-h-11 items-center px-1.5 text-sm font-medium text-ink after:absolute after:inset-x-1.5 after:bottom-2 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-pill after:bg-brand hover:text-navy hover:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-200 md:text-[15px]"
+                className="relative inline-flex min-h-11 items-center px-1.5 text-sm font-medium text-ink after:absolute after:inset-x-1.5 after:bottom-2 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-pill after:bg-brand hover:text-ink-muted hover:after:scale-x-100 motion-safe:transition-colors motion-safe:duration-300 motion-safe:delay-75 motion-safe:after:transition-transform motion-safe:after:duration-300 motion-safe:after:delay-75 md:text-[15px]"
               >
                 How it works
               </Link>
             </nav>
             <Link
               href="/rooms"
-              className="hidden min-h-11 items-center justify-self-end rounded-pill bg-navy px-5 text-[15px] font-semibold text-navy-ink hover:bg-ink md:inline-flex"
+              className="rise hidden min-h-11 items-center justify-self-end rounded-pill bg-navy px-5 text-[15px] font-semibold text-navy-ink [animation-delay:160ms] hover:bg-brand-strong motion-safe:transition-colors motion-safe:duration-300 motion-safe:delay-75 md:inline-flex"
             >
               Book a room
             </Link>
