@@ -131,7 +131,7 @@ export function validateFields(
   if (!/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))) {
     errors.contact = "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
   }
-  if (!b.consent) errors.consent = "Please agree to the privacy notice.";
+  if (!b.consent) errors.consent = "Please tick the box to continue.";
   return errors;
 }
 
