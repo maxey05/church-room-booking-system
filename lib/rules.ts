@@ -76,6 +76,19 @@ export function formatHour(h: number): string {
   return `${hour12}:00 ${suffix}`;
 }
 
+export function formatHour24(h: number): string {
+  return `${String(h % 24).padStart(2, "0")}:00`;
+}
+
+export function formatRange24(hours: number[]): string {
+  if (hours.length === 0) {
+    throw new Error("formatRange24 needs at least one hour");
+  }
+  const start = Math.min(...hours);
+  const end = Math.max(...hours) + 1;
+  return `${formatHour24(start)} – ${formatHour24(end)}`;
+}
+
 export function formatRange(hours: number[]): string {
   if (hours.length === 0) {
     throw new Error("formatRange needs at least one hour");
