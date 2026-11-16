@@ -9,7 +9,7 @@ export default function RoomNotFound() {
       </p>
       <Link
         href="/rooms"
-        className="mt-4 inline-flex min-h-11 items-center text-brand-strong underline"
+        className="mt-4 inline-flex min-h-11 items-center text-brand-strong underline hover:text-navy motion-safe:transition-colors motion-safe:duration-250"
       >
         ← Back to all rooms
       </Link>
