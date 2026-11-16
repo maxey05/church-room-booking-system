@@ -1,7 +1,7 @@
 export type Range = readonly [number, number];
 
 export type PlanShape = {
-  kind: "block" | "stairs" | "elevator" | "space";
+  kind: "block" | "elevator" | "space";
   x: Range;
   y: Range;
 };
@@ -20,13 +20,9 @@ export type Plan = {
 
 export const FLOOR_PLANS: Partial<Record<number, Plan>> = {
   1: {
-    bounds: [124, 200, 1076, 1272],
+    bounds: [124, 216, 1076, 1272],
     shapes: [
-      { kind: "block", x: [132, 220], y: [208, 328] },
-      { kind: "stairs", x: [236, 300], y: [240, 328] },
       { kind: "elevator", x: [324, 420], y: [224, 328] },
-      { kind: "stairs", x: [444, 508], y: [240, 328] },
-      { kind: "block", x: [524, 612], y: [208, 328] },
       { kind: "block", x: [132, 612], y: [344, 384] },
       { kind: "space", x: [204, 540], y: [400, 800] },
       { kind: "space", x: [556, 892], y: [672, 1072] },
@@ -41,9 +37,7 @@ export const FLOOR_PLANS: Partial<Record<number, Plan>> = {
   2: {
     bounds: [96, 200, 1104, 1080],
     shapes: [
-      { kind: "stairs", x: [456, 520], y: [224, 312] },
       { kind: "elevator", x: [552, 648], y: [208, 312] },
-      { kind: "stairs", x: [680, 744], y: [224, 312] },
       { kind: "block", x: [360, 840], y: [328, 368] },
       { kind: "block", x: [576, 624], y: [384, 528] },
       { kind: "block", x: [576, 624], y: [928, 1072] },
