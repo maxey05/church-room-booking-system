@@ -4,7 +4,7 @@ import { getAdmin } from "@/lib/supabase";
 import { signOut } from "./login/actions";
 
 export const metadata: Metadata = {
-  title: "Admin · CCF Room Booking",
+  title: "Admin · CCF Alabang Room Booking",
   robots: { index: false, follow: false },
 };
 
