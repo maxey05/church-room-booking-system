@@ -8,7 +8,9 @@ import {
   byFloorThenName,
   formatDate,
   formatHour,
+  formatHour24,
   formatRange,
+  formatRange24,
   groupByToken,
   isRealDate,
   manilaNow,
@@ -67,6 +69,12 @@ assert.equal(formatHour(24), "12:00 AM");
 
 assert.equal(formatRange([20, 19]), "7:00 PM – 9:00 PM");
 assert.equal(formatRange([11]), "11:00 AM – 12:00 PM");
+assert.equal(formatHour24(7), "07:00");
+assert.equal(formatHour24(19), "19:00");
+assert.equal(formatHour24(24), "00:00");
+assert.equal(formatRange24([20, 19]), "19:00 – 21:00");
+assert.equal(formatRange24([21]), "21:00 – 22:00");
+assert.throws(() => formatRange24([]));
 assert.equal(formatRange([23]), "11:00 PM – 12:00 AM");
 assert.throws(() => formatRange([]), Error);
 
