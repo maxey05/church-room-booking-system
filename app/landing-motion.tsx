@@ -15,34 +15,60 @@ const STARTS = SEGMENTS.map((_, i) =>
 const START_DELAY = 400;
 const CHAR_DELAY = 45;
 const MARK_DELAY = 300;
+const PAUSE = 500;
+const HOLD = 9000;
+const UNMARK_DELAY = 700;
+const ERASE_DELAY = 28;
+const RETYPE_DELAY = 350;
 
 export function HeroTitle({ className }: { className?: string }) {
   const [typed, setTyped] = useState(0);
   const [marked, setMarked] = useState(false);
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const timers: number[] = [];
-    if (reduce) {
-      timers.push(
-        window.setTimeout(() => {
-          setTyped(FULL.length);
-          setMarked(true);
-        }, 0),
-      );
-    } else {
-      for (let i = 1; i <= FULL.length; i++) {
-        timers.push(
-          window.setTimeout(() => setTyped(i), START_DELAY + i * CHAR_DELAY),
-        );
-      }
-      timers.push(
-        window.setTimeout(
-          () => setMarked(true),
-          START_DELAY + FULL.length * CHAR_DELAY + MARK_DELAY,
-        ),
-      );
+    const at = (ms: number, fn: () => void) => {
+      timers.push(window.setTimeout(fn, ms));
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      at(0, () => {
+        setTyped(FULL.length);
+        setMarked(true);
+      });
+      return () => timers.forEach((t) => window.clearTimeout(t));
     }
+
+    function typeFrom(i: number) {
+      if (i < FULL.length) {
+        const next = i + 1;
+        at(CHAR_DELAY + (next === STARTS[1] + 1 ? PAUSE : 0), () => {
+          setTyped(next);
+          typeFrom(next);
+        });
+        return;
+      }
+      at(MARK_DELAY, () => {
+        setMarked(true);
+        at(HOLD, () => {
+          setMarked(false);
+          at(UNMARK_DELAY, () => erase(FULL.length));
+        });
+      });
+    }
+
+    function erase(i: number) {
+      if (i > STARTS[1]) {
+        at(ERASE_DELAY, () => {
+          setTyped(i - 1);
+          erase(i - 1);
+        });
+        return;
+      }
+      at(RETYPE_DELAY, () => typeFrom(STARTS[1]));
+    }
+
+    at(START_DELAY, () => typeFrom(0));
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, []);
 
@@ -114,6 +140,66 @@ export function Reveal({
 
   return (
     <div ref={ref} data-seen={seen} className={`reveal ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+type Phase = "idle" | "play" | "rewind";
+
+const REPLAY_START = 450;
+const REPLAY_REWIND = 700;
+
+export function Replay({
+  children,
+  className = "",
+  hold = 5200,
+}: {
+  children: ReactNode;
+  className?: string;
+  hold?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const phaseRef = useRef<Phase>("idle");
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
+      threshold: 0.35,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timers: number[] = [];
+    const go = (next: Phase, ms: number, then?: () => void) => {
+      timers.push(
+        window.setTimeout(() => {
+          phaseRef.current = next;
+          setPhase(next);
+          then?.();
+        }, ms),
+      );
+    };
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function loop() {
+      if (reduce) return;
+      go("rewind", hold, () => go("play", REPLAY_REWIND, loop));
+    }
+
+    if (phaseRef.current === "play") loop();
+    else go("play", reduce ? 0 : REPLAY_START, loop);
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [visible, hold]);
+
+  return (
+    <div ref={ref} aria-hidden="true" data-phase={phase} className={`replay ${className}`}>
       {children}
     </div>
   );
