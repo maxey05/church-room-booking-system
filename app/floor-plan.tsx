@@ -14,7 +14,7 @@ const PAD_PHONE = 10;
 const motion =
   "motion-safe:transition-[background-color,border-color,box-shadow,color] motion-safe:duration-250 motion-safe:ease-out";
 
-function place(x: Range, y: Range, b: PlanBounds) {
+export function place(x: Range, y: Range, b: PlanBounds) {
   const w = b[2] - b[0];
   const h = b[3] - b[1];
   return {
@@ -50,7 +50,7 @@ const SHAPE_CLASS: Record<Exclude<PlanShape["kind"], "elevator">, string> = {
   space: "rounded-md border-[1.5px] border-dashed border-outline",
 };
 
-function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
+export function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
   const style = place(shape.x, shape.y, bounds);
   if (shape.kind === "elevator") {
     return (
@@ -76,7 +76,7 @@ function Shape({ shape, bounds }: { shape: PlanShape; bounds: PlanBounds }) {
   );
 }
 
-function CheckMark() {
+export function CheckMark() {
   return (
     <svg
       aria-hidden="true"
