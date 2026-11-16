@@ -10,8 +10,8 @@ import {
 } from "react";
 import {
   addDays,
-  formatHour,
-  formatRange,
+  formatHour24,
+  formatRange24,
   HOURS,
   MAX_DAYS_AHEAD,
   validateFields,
@@ -55,13 +55,8 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function clockHour(h: number): string {
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:00`;
-}
-
 function slotLabel(h: number): string {
-  return `${clockHour(h)}-${clockHour(h + 1)}`;
+  return `${formatHour24(h)}-${formatHour24(h + 1)}`;
 }
 
 function nextHours(current: number[], h: number, isBad: (h: number) => boolean): number[] {
@@ -330,7 +325,7 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
           >
             Room reserved!
           </h2>
-          <div className="mt-[18px] mb-3.5 w-0 min-w-full rounded-lg bg-navy px-4 py-3.5 text-left text-navy-ink">
+          <div className="mx-[-1rem] mt-[18px] mb-3.5 w-0 min-w-[calc(100%+2rem)] rounded-lg bg-navy px-4 py-3.5 text-left text-navy-ink">
             <p className="font-bold">{done.room}</p>
             <p className="mt-1 text-sm text-navy-ink/85">{done.date}</p>
             <p className="text-sm text-navy-ink/85">{done.time}</p>
@@ -669,7 +664,7 @@ export default function Workspace({
                             key={h}
                             type="button"
                             aria-pressed={on}
-                            aria-label={`${formatHour(h)} to ${formatHour(h + 1)}${
+                            aria-label={`${formatHour24(h)} to ${formatHour24(h + 1)}${
                               bad && ready
                                 ? h <= (slots?.pastUntil ?? -1)
                                   ? ", past"
@@ -832,7 +827,7 @@ export default function Workspace({
                       {longDate.format(asDate(date))}
                     </p>
                     <p className="truncate text-[13px] leading-[1.35] text-navy-ink/85 lg:text-sm">
-                      {chosen.length ? formatRange(chosen) : "Pick your time"}
+                      {chosen.length ? formatRange24(chosen) : "Pick your time"}
                     </p>
                   </div>
                   <button
