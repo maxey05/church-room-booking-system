@@ -25,6 +25,7 @@
   --radius-pill: 9999px;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
 @layer base {
@@ -53,5 +54,146 @@
   :focus-visible {
     outline: 2px solid var(--color-brand);
     outline-offset: 2px;
+  }
+}
+
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.caret {
+  position: relative;
+}
+
+.caret::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 0.14em;
+  width: 3px;
+  height: 0.84em;
+  border-radius: 2px;
+  background: var(--color-brand);
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+
+.highlight {
+  background-image: linear-gradient(var(--color-brand-tint), var(--color-brand-tint));
+  background-repeat: no-repeat;
+  background-position: 0 72%;
+  background-size: 0% 78%;
+  border-radius: 0.2em;
+  padding-inline: 0.06em;
+}
+
+.highlight[data-on="true"] {
+  background-size: 100% 78%;
+}
+
+.mail-tick {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .highlight {
+    transition: background-size 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .rise {
+    animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .reveal {
+    transition-property: opacity, transform;
+    transition-duration: 0.6s, 0.7s;
+    transition-timing-function: ease-out, cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .reveal:not([data-seen="true"]) {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  .pick-room,
+  .fill-slot {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out;
+  }
+
+  .reveal:not([data-seen="true"]) .pick-room {
+    background-color: var(--color-surface);
+    border-color: var(--color-outline);
+    color: var(--color-navy);
+    box-shadow: none;
+  }
+
+  .reveal:not([data-seen="true"]) .fill-slot {
+    background-color: var(--color-surface);
+    border-color: var(--color-line);
+    color: var(--color-ink);
+  }
+
+  .tap-cursor {
+    transition-property: left, top, opacity;
+    transition-duration: 0.9s, 0.9s, 0.3s;
+    transition-timing-function: cubic-bezier(0.45, 0, 0.2, 1);
+  }
+
+  .reveal:not([data-seen="true"]) .tap-cursor {
+    left: 12%;
+    top: 86%;
+    opacity: 0;
+  }
+
+  .pop-in,
+  .mail-card {
+    transition-property: opacity, transform;
+    transition-duration: 0.45s;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .reveal:not([data-seen="true"]) .pop-in {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  .reveal:not([data-seen="true"]) .mail-card {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+
+  .mail-tick {
+    transition: stroke-dashoffset 0.4s ease-out;
+    transition-delay: inherit;
+  }
+
+  .reveal:not([data-seen="true"]) .mail-tick {
+    stroke-dashoffset: 24;
   }
 }
