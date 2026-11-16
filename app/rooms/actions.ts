@@ -2,7 +2,6 @@
 
 import { sendConfirmation } from "@/lib/email";
 import {
-  formatDate,
   formatRange,
   manilaNow,
   resolveDate,
@@ -12,9 +11,21 @@ import { db } from "@/lib/supabase";
 
 export type BookState = {
   error?: string;
-  values?: { name: string; email: string; contact: string; dgroupLeader: string };
+  values?: {
+    name: string;
+    email: string;
+    contact: string;
+    dgroupLeader: string;
+    notes: string;
+  };
   slotTaken?: boolean;
-  done?: { room: string; when: string; emailed: boolean; email: string };
+  done?: {
+    room: string;
+    date: string;
+    time: string;
+    emailed: boolean;
+    email: string;
+  };
 };
 
 export type TakenResult =
@@ -23,6 +34,15 @@ export type TakenResult =
 
 const TAKEN =
   "Sorry, one of those slots was just taken. We've refreshed the times, so please pick another.";
+
+const MAX_NOTES = 500;
+
+const longDate = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
 
 export async function book(
   roomId: number,
@@ -35,6 +55,7 @@ export async function book(
     email: text("email").toLowerCase(),
     contact: text("contact"),
     dgroupLeader: text("dgroupLeader"),
+    notes: text("notes").slice(0, MAX_NOTES),
   };
   const date = text("date");
   const hours = form.getAll("hours").map(Number);
@@ -68,6 +89,7 @@ export async function book(
         email: values.email,
         contact: values.contact.replace(/[\s-]/g, ""),
         dgroup_leader: values.dgroupLeader || null,
+        notes: values.notes || null,
         cancel_token: cancelToken,
       })),
     );
@@ -95,7 +117,8 @@ export async function book(
   return {
     done: {
       room: `${room.name} · Floor ${room.floor}`,
-      when: `${formatDate(date)} · ${formatRange(hours)}`,
+      date: longDate.format(new Date(`${date}T00:00:00Z`)),
+      time: formatRange(hours),
       emailed,
       email: values.email,
     },
