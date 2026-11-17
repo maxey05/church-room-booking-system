@@ -1,8 +1,10 @@
 "use server";
 
-import { sendConfirmation } from "@/lib/email";
+import { countBookingsToday, getDailyLimit } from "@/lib/bookings";
 import {
+  dailyLimitMessage,
   formatRange24,
+  limitReached,
   manilaNow,
   resolveDate,
   validateBooking,
@@ -15,6 +17,7 @@ export type BookState = {
     name: string;
     email: string;
     contact: string;
+    expectedPax: string;
     dgroupLeader: string;
     notes: string;
   };
@@ -23,7 +26,6 @@ export type BookState = {
     room: string;
     date: string;
     time: string;
-    emailed: boolean;
     email: string;
   };
 };
@@ -54,6 +56,7 @@ export async function book(
     name: text("name"),
     email: text("email").toLowerCase(),
     contact: text("contact"),
+    expectedPax: text("expectedPax"),
     dgroupLeader: text("dgroupLeader"),
     notes: text("notes").slice(0, MAX_NOTES),
   };
@@ -77,6 +80,14 @@ export async function book(
   if (roomError) throw new Error(roomError.message);
   if (!room) return { error: "This room is not available.", values };
 
+  const [limit, bookedToday] = await Promise.all([
+    getDailyLimit(),
+    countBookingsToday(values.email, values.contact),
+  ]);
+  if (limitReached(bookedToday, limit)) {
+    return { error: dailyLimitMessage(limit), values };
+  }
+
   const cancelToken = crypto.randomUUID();
   const { error: insertError } = await db()
     .from("bookings")
@@ -88,9 +99,11 @@ export async function book(
         name: values.name,
         email: values.email,
         contact: values.contact.replace(/[\s-]/g, ""),
+        expected_pax: Number(values.expectedPax),
         dgroup_leader: values.dgroupLeader || null,
         notes: values.notes || null,
         cancel_token: cancelToken,
+        status: "pending",
       })),
     );
   if (insertError) {
@@ -98,28 +111,11 @@ export async function book(
     throw new Error(insertError.message);
   }
 
-  let emailed = true;
-  try {
-    await sendConfirmation({
-      to: values.email,
-      name: values.name,
-      roomName: room.name,
-      floor: room.floor,
-      date,
-      hours,
-      cancelToken,
-    });
-  } catch (e) {
-    console.error("Confirmation email failed", e);
-    emailed = false;
-  }
-
   return {
     done: {
       room: `${room.name} · Floor ${room.floor}`,
       date: longDate.format(new Date(`${date}T00:00:00Z`)),
       time: formatRange24(hours),
-      emailed,
       email: values.email,
     },
   };
@@ -141,7 +137,7 @@ export async function getTaken(roomId: number, date: string): Promise<TakenResul
     .select("hour")
     .eq("room_id", roomId)
     .eq("date", date)
-    .eq("status", "booked");
+    .in("status", ["pending", "booked"]);
   if (error) {
     console.error("Loading taken hours failed", error.message);
     return { error: "We couldn't load the times. Please try again." };

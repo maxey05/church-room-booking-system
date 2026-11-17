@@ -2,7 +2,7 @@ import { db } from "@/lib/supabase";
 import { byFloorThenName, manilaNow } from "@/lib/rules";
 import Workspace from "./workspace";
 
-type RoomRow = { id: number; name: string; floor: number };
+type RoomRow = { id: number; name: string; floor: number; pax: number | null };
 
 function first(value: string | string[] | undefined): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -13,7 +13,7 @@ export default async function RoomsPage({ searchParams }: PageProps<"/rooms">) {
 
   const { data, error } = await db()
     .from("rooms")
-    .select("id, name, floor")
+    .select("id, name, floor, pax")
     .eq("active", true);
   if (error) throw new Error(error.message);
   const rooms = (data as RoomRow[]).sort(byFloorThenName);

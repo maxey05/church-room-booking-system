@@ -20,14 +20,14 @@ import {
 import FloorPlan from "../floor-plan";
 import { book, getTaken, type BookState } from "./actions";
 
-type Room = { id: number; name: string; floor: number };
+type Room = { id: number; name: string; floor: number; pax: number | null };
 type Slots = { key: string; taken: number[]; pastUntil: number; error?: string };
 type Done = NonNullable<BookState["done"]>;
 
 const FLOORS = [1, 2, 3, 4, 5, 6];
 const OPEN_FLOORS = [1, 2];
 const FLOOR_NAMES = ["", "First", "Second", "Third", "Fourth", "Fifth", "Sixth"];
-const FIELD_ORDER = ["name", "email", "contact", "consent"] as const;
+const FIELD_ORDER = ["name", "email", "contact", "expectedPax", "consent"] as const;
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 const motion =
@@ -168,10 +168,12 @@ function TextField({
   error?: string;
   type?: string;
   autoComplete: string;
-  inputMode?: "tel";
+  inputMode?: "tel" | "numeric";
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
+  min?: number;
+  max?: number;
 }) {
   const id = `field-${name}`;
   return (
@@ -299,9 +301,7 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
     <div className="flex items-center justify-center px-2 py-6 lg:absolute lg:inset-4 lg:py-0">
       <div
         role="status"
-        className={`rise w-full max-w-[440px] rounded-xl bg-surface p-6 text-center shadow-[0_30px_60px_-36px] shadow-navy/45 md:p-8 ${
-          done.emailed ? "" : "ring-2 ring-warning"
-        }`}
+        className="rise w-full max-w-[440px] rounded-xl bg-surface p-6 text-center shadow-[0_30px_60px_-36px] shadow-navy/45 md:p-8"
       >
         <div className="tick-draw mx-auto mb-3.5 grid size-14 place-items-center rounded-full bg-sky-soft">
           <svg
@@ -314,7 +314,8 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
             strokeLinejoin="round"
             className="size-7 text-sky"
           >
-            <path d="M5 12.5l4.5 4.5L19 7.5" />
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
           </svg>
         </div>
         <div className="mx-auto flex w-fit max-w-full flex-col">
@@ -323,7 +324,7 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
             tabIndex={-1}
             className="text-[30px] leading-[1.1] font-medium tracking-[-0.03em] whitespace-nowrap text-sky focus:outline-none"
           >
-            Room reserved!
+            Approval pending
           </h2>
           <div className="mx-[-1rem] mt-[18px] mb-3.5 w-0 min-w-[calc(100%+2rem)] rounded-lg bg-navy px-4 py-3.5 text-left text-navy-ink">
             <p className="font-bold">{done.room}</p>
@@ -331,19 +332,13 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
             <p className="text-sm text-navy-ink/85">{done.time}</p>
           </div>
         </div>
-        {done.emailed ? (
-          <p className="text-[15px] text-ink-muted">
-            A confirmation email will be sent to{" "}
-            <strong className="font-semibold [overflow-wrap:anywhere] text-ink">
-              {done.email}
-            </strong>
-          </p>
-        ) : (
-          <p className="text-[15px] font-semibold text-warning">
-            We couldn&apos;t send the confirmation email, but your booking is saved.
-            Please screenshot this page.
-          </p>
-        )}
+        <p className="text-[15px] text-ink-muted">
+          Your hours are held while an admin reviews your request. We&apos;ll email{" "}
+          <strong className="font-semibold [overflow-wrap:anywhere] text-ink">
+            {done.email}
+          </strong>{" "}
+          once it&apos;s approved or declined.
+        </p>
         <button
           type="button"
           onClick={onAgain}
@@ -521,6 +516,7 @@ export default function Workspace({
       name: text("name"),
       email: text("email").toLowerCase(),
       contact: text("contact"),
+      expectedPax: text("expectedPax"),
       consent: data.get("consent") === "on",
     });
     setErrors(found);
@@ -584,8 +580,8 @@ export default function Workspace({
         style={{ animationDelay: "420ms" }}
         className={`rise-desk relative rounded-xl bg-mist p-3 ${
           done
-            ? "lg:h-[max(460px,calc(100dvh_-_136px))]"
-            : "lg:h-[max(520px,calc(100dvh_-_212px))]"
+            ? "lg:h-[max(460px,calc(100dvh_-_200px))]"
+            : "lg:h-[max(520px,calc(100dvh_-_276px))]"
         }`}
       >
         {done ? (
@@ -764,6 +760,20 @@ export default function Workspace({
                         required
                         defaultValue={state.values?.contact}
                         error={errors.contact}
+                      />
+                      <TextField
+                        name="expectedPax"
+                        label="Expected pax"
+                        hint="required"
+                        type="number"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="8"
+                        min={1}
+                        max={100}
+                        required
+                        defaultValue={state.values?.expectedPax}
+                        error={errors.expectedPax}
                       />
                       <TextField
                         name="dgroupLeader"
