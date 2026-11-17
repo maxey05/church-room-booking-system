@@ -98,6 +98,23 @@ export function formatRange(hours: number[]): string {
   return `${formatHour(start)} – ${formatHour(end)}`;
 }
 
+export function hasStarted(date: string, firstHour: number, now: Date = new Date()): boolean {
+  const today = manilaNow(now);
+  return date < today.date || (date === today.date && firstHour <= today.hour);
+}
+
+const submittedFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: TZ,
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+export function formatSubmitted(iso: string): string {
+  return submittedFormat.format(new Date(iso)).replace(/\u202f/g, " ");
+}
+
 export function formatDate(date: string): string {
   const [y, m, d] = parseDate(date);
   return new Intl.DateTimeFormat("en-US", {
@@ -112,6 +129,7 @@ export type BookingInput = {
   name: string;
   email: string;
   contact: string;
+  expectedPax: string;
   dgroupLeader: string;
   consent: boolean;
   date: string;
@@ -130,11 +148,12 @@ export type FieldErrors = {
   name?: string;
   email?: string;
   contact?: string;
+  expectedPax?: string;
   consent?: string;
 };
 
 export function validateFields(
-  b: Pick<BookingInput, "name" | "email" | "contact" | "consent">,
+  b: Pick<BookingInput, "name" | "email" | "contact" | "expectedPax" | "consent">,
 ): FieldErrors {
   const errors: FieldErrors = {};
   if (!b.name.trim()) errors.name = "Please enter your name.";
@@ -144,13 +163,19 @@ export function validateFields(
   if (!/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))) {
     errors.contact = "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
   }
+  const pax = b.expectedPax.trim();
+  if (!pax) {
+    errors.expectedPax = "Please enter how many people you expect.";
+  } else if (!/^\d{1,3}$/.test(pax) || Number(pax) < 1 || Number(pax) > 100) {
+    errors.expectedPax = "Please enter a whole number from 1 to 100.";
+  }
   if (!b.consent) errors.consent = "Please tick the box to continue.";
   return errors;
 }
 
 export function validateBooking(b: BookingInput, now: Date = new Date()): string | null {
   const fields = validateFields(b);
-  const firstField = fields.name ?? fields.email ?? fields.contact ?? fields.consent;
+  const firstField = fields.name ?? fields.email ?? fields.contact ?? fields.expectedPax ?? fields.consent;
   if (firstField) return firstField;
   if (!isRealDate(b.date)) return "Please pick a date.";
   if (b.hours.length === 0) return "Please pick at least one time slot.";
@@ -211,4 +236,169 @@ export function groupByToken<T extends { cancel_token: string; hour: number }>(
     ...first,
     hours: hours.sort((a, b) => a - b),
   }));
+}
+
+export const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export function startOfWeek(date: string): string {
+  const [y, m, d] = parseDate(date);
+  const dow = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  return addDays(date, -dow);
+}
+
+export function weekDates(date: string): string[] {
+  const start = startOfWeek(date);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+export function startOfMonth(date: string): string {
+  const [, , d] = parseDate(date);
+  return addDays(date, 1 - d);
+}
+
+export function startOfNextMonth(date: string): string {
+  return `${addDays(startOfMonth(date), 31).slice(0, 8)}01`;
+}
+
+export function manilaStartOfDay(date: string): Date {
+  parseDate(date);
+  return new Date(`${date}T00:00:00+08:00`);
+}
+
+export function greeting(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+export function formatLongDate(date: string): string {
+  const [y, m, d] = parseDate(date);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
+export function formatMonthDay(date: string): string {
+  const [y, m, d] = parseDate(date);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
+export function percent(part: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((part / total) * 100);
+}
+
+export const DEFAULT_DAILY_LIMIT = 3;
+export const MIN_DAILY_LIMIT = 1;
+export const MAX_DAILY_LIMIT = 20;
+
+export function normalizeContact(contact: string): string {
+  const clean = contact.replace(/[\s-]/g, "");
+  return /^\+639\d{9}$/.test(clean) ? `0${clean.slice(3)}` : clean;
+}
+
+export function contactVariants(contact: string): string[] {
+  const local = normalizeContact(contact);
+  return /^09\d{9}$/.test(local) ? [local, `+63${local.slice(1)}`] : [local];
+}
+
+export function parseDailyLimit(raw: unknown): number | null {
+  let value: number;
+  if (typeof raw === "number") {
+    value = raw;
+  } else if (typeof raw === "string" && /^\d{1,3}$/.test(raw.trim())) {
+    value = Number(raw.trim());
+  } else {
+    return null;
+  }
+  return Number.isInteger(value) && value >= MIN_DAILY_LIMIT && value <= MAX_DAILY_LIMIT
+    ? value
+    : null;
+}
+
+export function validateDailyLimit(raw: string): string | null {
+  return parseDailyLimit(raw) === null
+    ? `Enter a whole number from ${MIN_DAILY_LIMIT} to ${MAX_DAILY_LIMIT}.`
+    : null;
+}
+
+export function manilaDayRange(date: string): { start: string; end: string } {
+  return {
+    start: manilaStartOfDay(date).toISOString(),
+    end: manilaStartOfDay(addDays(date, 1)).toISOString(),
+  };
+}
+
+export function limitReached(count: number, limit: number): boolean {
+  return count >= limit;
+}
+
+export function dailyLimitMessage(limit: number): string {
+  return `You've reached today's limit of ${limit} ${limit === 1 ? "booking" : "bookings"}. Please try again tomorrow.`;
+}
+
+export const MIN_ROOM_PAX = 1;
+export const MAX_ROOM_PAX = 100;
+
+export function parseRoomPax(
+  text: string,
+): { ok: true; pax: number | null } | { ok: false; error: string } {
+  const t = text.trim();
+  if (t === "") return { ok: true, pax: null };
+  if (/^\d{1,3}$/.test(t)) {
+    const n = Number(t);
+    if (n >= MIN_ROOM_PAX && n <= MAX_ROOM_PAX) return { ok: true, pax: n };
+  }
+  return { ok: false, error: `Enter a whole number from ${MIN_ROOM_PAX} to ${MAX_ROOM_PAX}.` };
+}
+
+export const MAX_SEARCH_LENGTH = 100;
+
+export function searchPattern(term: string): string {
+  return term
+    .slice(0, MAX_SEARCH_LENGTH)
+    .replace(/[\\%_]/g, "\\$&")
+    .replace(/[,()"*]/g, "_");
+}
+
+export function emailFailureReason(error: unknown): string {
+  const e = (typeof error === "object" && error !== null ? error : {}) as {
+    code?: unknown;
+    responseCode?: unknown;
+    message?: unknown;
+  };
+  const code = typeof e.code === "string" ? e.code : "";
+  const response = typeof e.responseCode === "number" ? e.responseCode : 0;
+  const message = typeof e.message === "string" ? e.message : String(error ?? "");
+
+  if (/missing environment variable/i.test(message)) {
+    return "The email settings are missing on the server.";
+  }
+  if (code === "EAUTH" || /invalid login|username and password not accepted/i.test(message)) {
+    return "Gmail refused the sign-in. Check the Gmail address and app password.";
+  }
+  if (/sending limit|quota|rate limit/i.test(message)) {
+    return "Gmail's sending limit was reached. Try again later.";
+  }
+  if (
+    code === "EENVELOPE" ||
+    (response >= 550 && response < 560) ||
+    /recipient|address.*(rejected|invalid)|user unknown/i.test(message)
+  ) {
+    return "The email address was rejected by the receiving server.";
+  }
+  if (
+    ["ETIMEDOUT", "ECONNECTION", "ESOCKET", "EDNS", "ECONNRESET"].includes(code) ||
+    /timeout|timed out|greeting never received/i.test(message)
+  ) {
+    return "Gmail did not answer in time (connection problem).";
+  }
+  return "The email could not be sent.";
 }

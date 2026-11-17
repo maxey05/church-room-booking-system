@@ -1,24 +1,49 @@
 import assert from "node:assert/strict";
 import {
   CLOSE_HOUR,
+  DEFAULT_DAILY_LIMIT,
+  MAX_DAILY_LIMIT,
+  MIN_DAILY_LIMIT,
   HOURS,
   MAX_DAYS_AHEAD,
   OPEN_HOUR,
+  WEEKDAY_SHORT,
+  emailFailureReason,
+  searchPattern,
   addDays,
   byFloorThenName,
+  contactVariants,
+  dailyLimitMessage,
   formatDate,
   formatHour,
   formatHour24,
+  formatLongDate,
+  formatMonthDay,
   formatRange,
   formatRange24,
+  formatSubmitted,
+  greeting,
   groupByToken,
+  hasStarted,
   isRealDate,
+  limitReached,
+  manilaDayRange,
   manilaNow,
+  manilaStartOfDay,
+  normalizeContact,
+  parseDailyLimit,
+  parseRoomPax,
+  percent,
   resolveDate,
+  startOfMonth,
+  startOfNextMonth,
+  startOfWeek,
   toggleHour,
   validateBlock,
   validateBooking,
+  validateDailyLimit,
   validateFields,
+  weekDates,
 } from "./rules.ts";
 
 function checkDateHelpers(): void {
@@ -128,6 +153,7 @@ const base = {
   name: "Ana Cruz",
   email: "ana@example.com",
   contact: "09171234567",
+  expectedPax: "8",
   dgroupLeader: "",
   consent: true,
   date: "2026-11-14",
@@ -146,6 +172,11 @@ assert.equal(
   check({ contact: "12345" }),
   "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
 );
+assert.equal(check({ expectedPax: "" }), "Please enter how many people you expect.");
+assert.equal(check({ expectedPax: "0" }), "Please enter a whole number from 1 to 100.");
+assert.equal(check({ expectedPax: "101" }), "Please enter a whole number from 1 to 100.");
+assert.equal(check({ expectedPax: "2.5" }), "Please enter a whole number from 1 to 100.");
+assert.equal(check({ expectedPax: "100" }), null);
 assert.equal(check({ consent: false }), "Please tick the box to continue.");
 assert.equal(check({ date: "" }), "Please pick a date.");
 assert.equal(check({ date: "2026-02-30" }), "Please pick a date.");
@@ -217,17 +248,157 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  validateFields({ name: "Ana", email: "ana@example.com", contact: "0917 123 4567", consent: true }),
+  validateFields({ name: "Ana", email: "ana@example.com", contact: "0917 123 4567", expectedPax: "8", consent: true }),
   {},
 );
 assert.deepEqual(
-  validateFields({ name: " ", email: "nope", contact: "123", consent: false }),
+  validateFields({ name: " ", email: "nope", contact: "123", expectedPax: "", consent: false }),
   {
     name: "Please enter your name.",
     email: "Please enter a valid email address.",
     contact: "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
+    expectedPax: "Please enter how many people you expect.",
     consent: "Please tick the box to continue.",
   },
 );
+
+const approvalNow = new Date("2026-11-13T02:30:00Z");
+assert.equal(hasStarted("2026-11-12", 21, approvalNow), true);
+assert.equal(hasStarted("2026-11-13", 10, approvalNow), true);
+assert.equal(hasStarted("2026-11-13", 11, approvalNow), false);
+assert.equal(hasStarted("2026-11-14", 7, approvalNow), false);
+
+assert.equal(formatSubmitted("2026-11-16T07:42:00Z"), "Nov 16, 3:42 PM");
+assert.equal(formatSubmitted("2026-11-15T16:05:00Z"), "Nov 16, 12:05 AM");
+
+assert.equal(startOfWeek("2026-11-16"), "2026-11-16");
+assert.equal(startOfWeek("2026-11-18"), "2026-11-16");
+assert.equal(startOfWeek("2026-11-22"), "2026-11-16");
+assert.equal(startOfWeek("2026-11-23"), "2026-11-23");
+assert.equal(startOfWeek("2026-01-01"), "2025-12-29");
+assert.equal(startOfWeek("2024-03-01"), "2024-02-26");
+assert.throws(() => startOfWeek("2026-02-30"));
+assert.deepEqual(weekDates("2026-11-19"), [
+  "2026-11-16",
+  "2026-11-17",
+  "2026-11-18",
+  "2026-11-19",
+  "2026-11-20",
+  "2026-11-21",
+  "2026-11-22",
+]);
+assert.equal(weekDates("2026-11-19").length, WEEKDAY_SHORT.length);
+assert.equal(startOfMonth("2026-11-16"), "2026-11-01");
+assert.equal(startOfMonth("2026-11-01"), "2026-11-01");
+assert.equal(startOfNextMonth("2026-11-16"), "2026-12-01");
+assert.equal(startOfNextMonth("2026-12-31"), "2027-01-01");
+assert.equal(startOfNextMonth("2024-02-29"), "2024-03-01");
+assert.equal(startOfNextMonth("2026-01-31"), "2026-02-01");
+assert.equal(manilaStartOfDay("2026-11-16").toISOString(), "2026-11-15T16:00:00.000Z");
+assert.equal(greeting(0), "Good morning");
+assert.equal(greeting(11), "Good morning");
+assert.equal(greeting(12), "Good afternoon");
+assert.equal(greeting(17), "Good afternoon");
+assert.equal(greeting(18), "Good evening");
+assert.equal(greeting(23), "Good evening");
+assert.equal(formatLongDate("2026-11-16"), "Monday, November 16");
+assert.equal(formatMonthDay("2026-11-22"), "Nov 22");
+assert.equal(percent(0, 0), 0);
+assert.equal(percent(5, 0), 0);
+assert.equal(percent(1, 3), 33);
+assert.equal(percent(2, 3), 67);
+assert.equal(percent(3, 3), 100);
+
+assert.equal(DEFAULT_DAILY_LIMIT, 3);
+assert.equal(normalizeContact("+639171234567"), "09171234567");
+assert.equal(normalizeContact("0917 123 4567"), "09171234567");
+assert.equal(normalizeContact("0917-123-4567"), "09171234567");
+assert.equal(normalizeContact("+63 917 123 4567"), "09171234567");
+assert.equal(normalizeContact("09171234567"), "09171234567");
+assert.equal(normalizeContact("12345"), "12345");
+assert.deepEqual(contactVariants("09171234567"), ["09171234567", "+639171234567"]);
+assert.deepEqual(contactVariants("+639171234567"), ["09171234567", "+639171234567"]);
+assert.deepEqual(contactVariants("12345"), ["12345"]);
+assert.equal(parseDailyLimit("3"), 3);
+assert.equal(parseDailyLimit(" 3 "), 3);
+assert.equal(parseDailyLimit(1), MIN_DAILY_LIMIT);
+assert.equal(parseDailyLimit("20"), MAX_DAILY_LIMIT);
+assert.equal(parseDailyLimit("0"), null);
+assert.equal(parseDailyLimit("21"), null);
+assert.equal(parseDailyLimit("-1"), null);
+assert.equal(parseDailyLimit("2.5"), null);
+assert.equal(parseDailyLimit("1e1"), null);
+assert.equal(parseDailyLimit(""), null);
+assert.equal(parseDailyLimit("abc"), null);
+assert.equal(parseDailyLimit(2.5), null);
+assert.equal(parseDailyLimit(null), null);
+assert.equal(parseDailyLimit(undefined), null);
+assert.equal(validateDailyLimit("5"), null);
+assert.equal(validateDailyLimit("0"), "Enter a whole number from 1 to 20.");
+assert.equal(validateDailyLimit("x"), "Enter a whole number from 1 to 20.");
+assert.deepEqual(manilaDayRange("2026-11-17"), {
+  start: "2026-11-16T16:00:00.000Z",
+  end: "2026-11-17T16:00:00.000Z",
+});
+assert.deepEqual(manilaDayRange("2026-12-31"), {
+  start: "2026-12-30T16:00:00.000Z",
+  end: "2026-12-31T16:00:00.000Z",
+});
+assert.throws(() => manilaDayRange("2026-02-30"), Error);
+assert.equal(limitReached(2, 3), false);
+assert.equal(limitReached(3, 3), true);
+assert.equal(limitReached(4, 3), true);
+assert.equal(limitReached(0, 1), false);
+assert.equal(
+  dailyLimitMessage(3),
+  "You've reached today's limit of 3 bookings. Please try again tomorrow.",
+);
+assert.equal(
+  dailyLimitMessage(1),
+  "You've reached today's limit of 1 booking. Please try again tomorrow.",
+);
+
+const PAX_ERROR = { ok: false, error: "Enter a whole number from 1 to 100." };
+assert.deepEqual(parseRoomPax(""), { ok: true, pax: null });
+assert.deepEqual(parseRoomPax("   "), { ok: true, pax: null });
+assert.deepEqual(parseRoomPax("12"), { ok: true, pax: 12 });
+assert.deepEqual(parseRoomPax("  12  "), { ok: true, pax: 12 });
+assert.deepEqual(parseRoomPax("1"), { ok: true, pax: 1 });
+assert.deepEqual(parseRoomPax("100"), { ok: true, pax: 100 });
+assert.deepEqual(parseRoomPax("0"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("101"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("abc"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("1.5"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("-3"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("1 2"), PAX_ERROR);
+assert.deepEqual(parseRoomPax("1000"), PAX_ERROR);
+
+assert.equal(searchPattern("Ana"), "Ana");
+assert.equal(searchPattern("a,b(c)"), "a_b_c_");
+assert.equal(searchPattern("100%_x"), "100\\%\\_x");
+assert.equal(searchPattern("x".repeat(150)).length, 100);
+
+assert.equal(
+  emailFailureReason(Object.assign(new Error("Invalid login: 535 Username and Password not accepted"), { code: "EAUTH" })),
+  "Gmail refused the sign-in. Check the Gmail address and app password.",
+);
+assert.equal(
+  emailFailureReason(Object.assign(new Error("Connection timeout"), { code: "ETIMEDOUT" })),
+  "Gmail did not answer in time (connection problem).",
+);
+assert.equal(
+  emailFailureReason(Object.assign(new Error("Recipient address rejected"), { responseCode: 550 })),
+  "The email address was rejected by the receiving server.",
+);
+assert.equal(
+  emailFailureReason(new Error("Missing environment variable GMAIL_USER.")),
+  "The email settings are missing on the server.",
+);
+assert.equal(
+  emailFailureReason(new Error("550-5.4.5 Daily user sending limit exceeded")),
+  "Gmail's sending limit was reached. Try again later.",
+);
+assert.equal(emailFailureReason(new Error("boom")), "The email could not be sent.");
+assert.equal(emailFailureReason(undefined), "The email could not be sent.");
 
 console.log("lib/rules.test.ts: all checks passed");
