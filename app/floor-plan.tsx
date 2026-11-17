@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { FLOOR_PLANS, type PlanShape, type Range } from "@/lib/floorplans";
 
 type PlanBounds = readonly [number, number, number, number];
 type Box = { w: number; h: number; pad: number };
-type Room = { id: number; name: string; floor: number };
+type Room = { id: number; name: string; floor: number; pax: number | null };
 
 const LEAVE_MS = 520;
 const PAD_DESKTOP = 16;
@@ -193,6 +193,144 @@ function Layer({
   );
 }
 
+function RoomInfo({ room }: { room: Room }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  const rows: { label: string; value: string | null }[] = [
+    { label: "Room", value: room.name },
+    { label: "Floor", value: `${room.floor}F` },
+    { label: "Pax", value: room.pax === null ? null : String(room.pax) },
+  ];
+
+  return (
+    <span
+      ref={wrap}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          setOpen(false);
+          trigger.current?.focus();
+        }
+      }}
+      className="relative inline-flex min-w-0"
+    >
+      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-pill bg-brand-soft py-[3px] pr-1 pl-3 text-[13px] font-semibold whitespace-nowrap text-brand-strong">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-3.5 flex-none"
+        >
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+        <span className="truncate">{room.name}</span>
+        <button
+          ref={trigger}
+          type="button"
+          aria-label="Room information"
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          onClick={() => setOpen((v) => !v)}
+          className={`relative grid size-6 flex-none place-items-center rounded-pill after:absolute after:-inset-1 after:content-[''] ${motion} ${
+            open
+              ? "bg-navy text-navy-ink"
+              : "text-brand-strong hover:bg-brand-tint"
+          }`}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="size-4"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5.5" />
+            <path d="M12 7.6v.01" />
+          </svg>
+        </button>
+      </span>
+      {open && (
+        <div
+          id={panelId}
+          role="dialog"
+          aria-label="Room information"
+          className="absolute top-full right-0 z-30 mt-2.5 w-58 rounded-lg bg-navy px-4 pt-3.5 pb-1.5 text-navy-ink shadow-[0_18px_40px_-24px] shadow-navy/90 motion-safe:animate-[fade-in_150ms_ease-out]"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -top-1.5 right-2.5 size-3 rotate-45 rounded-[2px] bg-navy"
+          />
+          <div className="relative flex items-center justify-between gap-2 pb-2">
+            <p className="text-[11px] font-semibold tracking-[0.08em] text-brand-tint uppercase">
+              Room information
+            </p>
+            <button
+              type="button"
+              aria-label="Close room information"
+              onClick={() => {
+                setOpen(false);
+                trigger.current?.focus();
+              }}
+              className={`-my-1 -mr-1.5 grid size-6 place-items-center rounded-pill text-brand-tint hover:bg-navy-ink/10 hover:text-navy-ink ${motion}`}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-3.5"
+              >
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+          <dl className="relative">
+            {rows.map((r) => (
+              <div
+                key={r.label}
+                className="flex items-baseline justify-between gap-3 border-t border-navy-ink/15 py-2.5"
+              >
+                <dt className="text-[13px] text-brand-tint">{r.label}</dt>
+                <dd
+                  className={`text-right ${
+                    r.value === null
+                      ? "text-[13px] font-medium text-brand-tint"
+                      : "text-[15px] font-semibold"
+                  }`}
+                >
+                  {r.value ?? "Not set yet"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </span>
+  );
+}
+
 export default function FloorPlan({
   floor,
   rooms,
@@ -266,25 +404,7 @@ export default function FloorPlan({
               : "Plan coming soon"}
           </span>
         </h2>
-        {picked && (
-          <span className="inline-flex min-w-0 items-center gap-1.5 rounded-pill bg-brand-soft px-3 py-[5px] text-[13px] font-semibold whitespace-nowrap text-brand-strong">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-3.5 flex-none"
-            >
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            </svg>
-            <span className="truncate">
-              {picked.name} · {picked.floor}F picked
-            </span>
-          </span>
-        )}
+        {picked && <RoomInfo key={picked.id} room={picked} />}
       </div>
 
       <div
