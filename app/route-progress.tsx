@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const FAILSAFE_MS = 6000;
 
@@ -9,6 +9,7 @@ type Controls = { start: () => void; finish: () => void };
 
 export default function RouteProgress() {
   const pathname = usePathname();
+  const search = useSearchParams().toString();
   const track = useRef<HTMLDivElement>(null);
   const fill = useRef<HTMLDivElement>(null);
   const controls = useRef<Controls | null>(null);
@@ -76,7 +77,22 @@ export default function RouteProgress() {
       if (anchor.hasAttribute("download")) return;
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin) return;
-      if (url.pathname === window.location.pathname) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      start();
+    };
+
+    const onSubmit = (e: SubmitEvent) => {
+      const form = e.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const action = form.getAttribute("action");
+      if (!action || action.startsWith("javascript:")) return;
+      const url = new URL(action, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      const params = new URLSearchParams();
+      for (const [key, value] of new FormData(form)) {
+        if (typeof value === "string") params.append(key, value);
+      }
+      if (url.pathname === window.location.pathname && `?${params}` === window.location.search) return;
       start();
     };
 
@@ -85,11 +101,13 @@ export default function RouteProgress() {
     };
 
     document.addEventListener("click", onClick, true);
+    document.addEventListener("submit", onSubmit, true);
     window.addEventListener("popstate", onPop);
     window.addEventListener("progress:start", start);
     window.addEventListener("progress:finish", finish);
     return () => {
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("submit", onSubmit, true);
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("progress:start", start);
       window.removeEventListener("progress:finish", finish);
@@ -102,7 +120,7 @@ export default function RouteProgress() {
   useEffect(() => {
     shown.current = pathname;
     controls.current?.finish();
-  }, [pathname]);
+  }, [pathname, search]);
 
   return (
     <div
