@@ -3,9 +3,12 @@
 import { useActionState } from "react";
 import { formatHour, HOURS, OPEN_HOUR } from "@/lib/rules";
 import { blockSlots, type BlockState } from "./actions";
+import DateField from "./date-field";
+import RoomSelect from "./room-select";
 
-const field =
-  "min-h-11 w-full rounded-pill border border-outline bg-brand-tint px-4 text-base font-normal text-ink";
+const fade =
+  "motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75";
+const field = `min-h-11 w-full rounded-pill border border-outline bg-brand-tint px-4 text-base font-normal text-ink hover:border-brand-strong ${fade}`;
 
 export default function BlockForm({
   rooms,
@@ -23,27 +26,20 @@ export default function BlockForm({
   return (
     <form
       action={formAction}
-      className="mt-4 grid gap-4 rounded-card-mobile bg-brand-soft p-4 sm:grid-cols-2 md:rounded-card md:p-6 lg:grid-cols-5"
+      className="mt-4 grid gap-4 rounded-card-mobile bg-brand-soft p-4 sm:grid-cols-2 md:rounded-card md:p-6 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] lg:items-end"
     >
       <label className="flex flex-col gap-1 font-semibold">
         Room
-        <select name="room" required defaultValue={v?.room} className={field}>
-          {rooms.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name} (Floor {r.floor})
-            </option>
-          ))}
-        </select>
+        <RoomSelect
+          name="room"
+          defaultValue={v?.room}
+          options={rooms.map((r) => ({ value: String(r.id), label: `${r.name} (Floor ${r.floor})` }))}
+          className={field}
+        />
       </label>
       <label className="flex flex-col gap-1 font-semibold">
         Date
-        <input
-          name="date"
-          type="date"
-          required
-          defaultValue={v?.date ?? date}
-          className={field}
-        />
+        <DateField name="date" required defaultValue={v?.date ?? date} className={field} />
       </label>
       <label className="flex flex-col gap-1 font-semibold">
         From
@@ -78,22 +74,21 @@ export default function BlockForm({
         />
       </label>
 
-      <div className="sm:col-span-2 lg:col-span-5">
-        {state.error && (
-          <p role="alert" className="mb-3 font-semibold text-danger">
-            {state.error}
-          </p>
-        )}
-        <div role="status">
-          {state.done && <p className="mb-3 font-semibold text-success">{state.done}</p>}
-        </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="min-h-12 w-full rounded-pill bg-brand-strong px-6 font-semibold text-surface disabled:cursor-not-allowed disabled:bg-mist disabled:text-ink-muted md:w-auto"
-        >
-          {pending ? "Blocking…" : "Block"}
-        </button>
+      <button
+        type="submit"
+        disabled={pending}
+        className={`min-h-11 w-full rounded-pill bg-brand-strong px-6 font-semibold text-surface enabled:hover:bg-navy disabled:cursor-not-allowed disabled:bg-mist disabled:text-ink-muted sm:col-span-2 lg:col-span-1 lg:w-auto ${fade}`}
+      >
+        {pending ? "Blocking…" : "Block"}
+      </button>
+
+      {state.error && (
+        <p role="alert" className="font-semibold text-danger sm:col-span-2 lg:col-span-6">
+          {state.error}
+        </p>
+      )}
+      <div role="status" className="empty:-mt-4 sm:col-span-2 lg:col-span-6">
+        {state.done && <p className="font-semibold text-success">{state.done}</p>}
       </div>
     </form>
   );
