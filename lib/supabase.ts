@@ -24,10 +24,30 @@ export type Booking = {
   name: string;
   email: string | null;
   contact: string | null;
+  expected_pax: number | null;
   dgroup_leader: string | null;
+  notes: string | null;
   cancel_token: string;
-  status: "booked" | "cancelled";
+  status: "pending" | "booked" | "declined" | "cancelled";
   created_at: string;
+};
+
+export type EmailKind = "approval" | "decline";
+export type EmailStatus = "sent" | "failed" | "resent";
+
+export type EmailLogRow = {
+  id: number;
+  created_at: string;
+  kind: EmailKind;
+  status: EmailStatus;
+  recipient_name: string;
+  recipient_email: string;
+  room_name: string;
+  floor: number;
+  booking_date: string;
+  hours: number[];
+  error: string | null;
+  cancel_token: string | null;
 };
 
 export function requireEnv(name: string): string {

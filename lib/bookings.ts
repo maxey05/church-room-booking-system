@@ -1,3 +1,11 @@
+import {
+  contactVariants,
+  DEFAULT_DAILY_LIMIT,
+  manilaDayRange,
+  manilaNow,
+  parseDailyLimit,
+  hasStarted,
+} from "@/lib/rules";
 import { db } from "@/lib/supabase";
 
 export async function cancelByToken(token: string): Promise<number> {
@@ -27,7 +35,7 @@ type Row = {
   hour: number;
   date: string;
   name: string;
-  status: "booked" | "cancelled";
+  status: "pending" | "booked" | "declined" | "cancelled";
   room_id: number;
   rooms: { name: string; floor: number } | null;
 };
@@ -53,4 +61,101 @@ export async function findBooking(token: string): Promise<FoundBooking | null> {
     hours: rows.map((r) => r.hour),
     active: rows.some((r) => r.status === "booked"),
   };
+}
+
+export type DecidedBooking = {
+  name: string;
+  email: string;
+  roomName: string;
+  floor: number;
+  date: string;
+  hours: number[];
+  cancelToken: string;
+};
+
+type PendingRow = {
+  hour: number;
+  date: string;
+  name: string;
+  email: string;
+  room_id: number;
+  rooms: { name: string; floor: number } | null;
+};
+
+export async function decideByToken(
+  token: string,
+  decision: "approve" | "decline",
+  now: Date = new Date(),
+): Promise<DecidedBooking | null> {
+  if (!UUID.test(token)) return null;
+  const { data, error } = await db()
+    .from("bookings")
+    .select("hour, date, name, email, room_id, rooms(name, floor)")
+    .eq("cancel_token", token)
+    .eq("kind", "booking")
+    .eq("status", "pending")
+    .order("hour");
+  if (error) throw new Error(error.message);
+  const rows = data as unknown as PendingRow[];
+  const first = rows[0];
+  if (!first?.rooms) return null;
+  if (hasStarted(first.date, first.hour, now)) return null;
+
+  const { data: updated, error: updateError } = await db()
+    .from("bookings")
+    .update({ status: decision === "approve" ? "booked" : "declined" })
+    .eq("cancel_token", token)
+    .eq("kind", "booking")
+    .eq("status", "pending")
+    .select("id");
+  if (updateError) throw new Error(updateError.message);
+  if (updated.length === 0) return null;
+
+  return {
+    name: first.name,
+    email: first.email,
+    roomName: first.rooms.name,
+    floor: first.rooms.floor,
+    date: first.date,
+    hours: rows.map((r) => r.hour),
+    cancelToken: token,
+  };
+}
+
+export async function getDailyLimit(): Promise<number> {
+  try {
+    const { data, error } = await db()
+      .from("settings")
+      .select("daily_booking_limit")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return parseDailyLimit(data?.daily_booking_limit) ?? DEFAULT_DAILY_LIMIT;
+  } catch (e) {
+    console.error("Loading the daily booking limit failed, using the default", e);
+    return DEFAULT_DAILY_LIMIT;
+  }
+}
+
+export async function countBookingsToday(email: string, contact: string): Promise<number> {
+  const { start, end } = manilaDayRange(manilaNow().date);
+  const base = () =>
+    db()
+      .from("bookings")
+      .select("cancel_token")
+      .eq("kind", "booking")
+      .in("status", ["pending", "booked"])
+      .gte("created_at", start)
+      .lt("created_at", end);
+  const [byEmail, byContact] = await Promise.all([
+    base().eq("email", email.trim().toLowerCase()),
+    base().in("contact", contactVariants(contact)),
+  ]);
+  if (byEmail.error) throw new Error(byEmail.error.message);
+  if (byContact.error) throw new Error(byContact.error.message);
+  const tokens = new Set<string>();
+  for (const row of [...(byEmail.data ?? []), ...(byContact.data ?? [])]) {
+    tokens.add(row.cancel_token as string);
+  }
+  return tokens.size;
 }
