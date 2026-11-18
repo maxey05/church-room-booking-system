@@ -6,6 +6,7 @@ import {
   formatRange24,
   limitReached,
   manilaNow,
+  normalizeContact,
   resolveDate,
   validateBooking,
 } from "@/lib/rules";
@@ -98,7 +99,7 @@ export async function book(
         hour,
         name: values.name,
         email: values.email,
-        contact: values.contact.replace(/[\s-]/g, ""),
+        contact: normalizeContact(values.contact),
         expected_pax: Number(values.expectedPax),
         dgroup_leader: values.dgroupLeader || null,
         notes: values.notes || null,
