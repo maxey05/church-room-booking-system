@@ -623,8 +623,11 @@ export function useDemo(
   }, [width, height]);
 
   useEffect(() => {
-    if (!visible) return;
     const timers: number[] = [];
+    if (!visible) {
+      timers.push(window.setTimeout(() => setScene(start), 0));
+      return () => timers.forEach((t) => window.clearTimeout(t));
+    }
     const wait = (ms: number) =>
       new Promise<void>((resolve) => {
         timers.push(window.setTimeout(resolve, ms));
@@ -693,9 +696,6 @@ export function useDemo(
     const api: DemoApi = { wait, set, moveTo, click, type, scrollPanel };
 
     async function run() {
-      await wait(0);
-      set({ shown: false, cursorOn: false });
-      await wait(450);
       for (;;) {
         setScene(start);
         await wait(800);

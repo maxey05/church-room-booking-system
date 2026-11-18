@@ -16,31 +16,16 @@ function SiteFooter({ clearFloatingBar }: { clearFloatingBar: boolean }) {
       className={`border-t border-line bg-bg ${clearFloatingBar ? "pb-24 lg:pb-0" : ""}`}
     >
       <div className="mx-auto flex min-h-16 w-full max-w-[1120px] flex-col justify-center gap-2 px-4 py-3 text-[13px] text-ink-muted md:px-6 xl:flex-row xl:items-center xl:justify-between xl:gap-8 lg:px-8">
-        <p className="flex items-start gap-2 xl:items-center">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mt-px size-4 flex-none text-brand-strong xl:mt-0"
-          >
-            <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <span>{ADDRESS}</span>
-        </p>
+        <p className="text-xs md:whitespace-nowrap">{ADDRESS}</p>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 xl:flex-none xl:justify-end">
-          <span className="font-semibold text-navy">Need help? Contact:</span>
+          <span>Need help?</span>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
             className="font-medium text-ink underline-offset-4 hover:text-brand-strong hover:underline motion-safe:transition-colors motion-safe:duration-300"
           >
             {CONTACT_EMAIL}
           </a>
-          <span aria-hidden="true" className="text-outline">
+          <span aria-hidden="true" className="text-line">
             |
           </span>
           <a

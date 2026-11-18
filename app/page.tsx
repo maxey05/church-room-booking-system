@@ -122,7 +122,7 @@ export default function Home() {
           <StepRow
             n={1}
             title="Pick a room on the map"
-            text="Choose a floor, then tap any room on the floor plan. You’ll see exactly where it is in the building."
+            text="Choose a floor, then pick any room in the floor plan."
           >
             <StepRoom />
           </StepRow>
@@ -131,7 +131,7 @@ export default function Home() {
             n={2}
             flip
             title="Choose your hours"
-            text="Pick a date, then tap one hour or a few in a row. Free hours are white and taken ones are crossed out."
+            text="Pick a date and choose your time."
           >
             <StepHours />
           </StepRow>
@@ -139,7 +139,7 @@ export default function Home() {
           <StepRow
             n={3}
             title="Send your request"
-            text="Add your name and contact details. An admin reviews it, and you'll get an email with a cancel link once it's approved."
+            text="Add your name and contact details. Your booking will be reviewed, and an email will be sent once it is approved."
           >
             <StepConfirm />
           </StepRow>
