@@ -72,6 +72,18 @@ function nextHours(current: number[], h: number, isBad: (h: number) => boolean):
   return span.some(isBad) ? [h] : span;
 }
 
+function readFields(form: HTMLFormElement) {
+  const data = new FormData(form);
+  const text = (key: string) => String(data.get(key) ?? "").trim();
+  return {
+    name: text("name"),
+    email: text("email").toLowerCase(),
+    contact: text("contact"),
+    expectedPax: text("expectedPax"),
+    consent: data.get("consent") === "on",
+  };
+}
+
 function SectionHead({
   id,
   title,
@@ -125,47 +137,19 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-function FieldError({ id, message }: { id: string; message?: string }) {
-  return (
-    <p
-      id={id}
-      role="alert"
-      className="flex items-center gap-1.5 text-[13px] font-semibold text-danger empty:hidden"
-    >
-      {message && (
-        <>
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            className="size-3.5 flex-none"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 8v5M12 16.5v.01" />
-          </svg>
-          <span>{message}</span>
-        </>
-      )}
-    </p>
-  );
-}
-
-const fieldClass = `w-full rounded-md border border-outline-soft bg-brand-soft px-3 text-base text-ink placeholder:text-ink-muted hover:border-outline hover:bg-brand-tint focus:border-brand-strong focus:bg-surface focus:ring-3 focus:ring-brand/20 focus:outline-none aria-invalid:border-danger lg:text-sm ${motion}`;
+const fieldClass = `w-full rounded-md border border-outline-soft bg-brand-soft px-3 text-base text-ink placeholder:text-ink-muted hover:border-outline hover:bg-brand-tint focus:border-brand-strong focus:bg-surface focus:ring-3 focus:ring-brand/20 focus:outline-none aria-invalid:border-danger aria-invalid:inset-ring-[1.5px] aria-invalid:inset-ring-danger scroll-my-28 lg:text-sm ${motion}`;
 
 function TextField({
   name,
   label,
   hint,
-  error,
+  invalid,
   ...input
 }: {
   name: string;
   label: string;
   hint: string;
-  error?: string;
+  invalid?: boolean;
   type?: string;
   autoComplete: string;
   inputMode?: "tel" | "numeric";
@@ -184,12 +168,10 @@ function TextField({
       <input
         id={id}
         name={name}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={`${id}-error`}
+        aria-invalid={invalid ? true : undefined}
         className={`h-11 lg:h-9 ${fieldClass}`}
         {...input}
       />
-      <FieldError id={`${id}-error`} message={error} />
     </div>
   );
 }
@@ -291,6 +273,7 @@ function Calendar({
 
 function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
   const heading = useRef<HTMLHeadingElement>(null);
+  const [roomName, floorName = ""] = done.room.split(" · ");
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
@@ -301,39 +284,43 @@ function Success({ done, onAgain }: { done: Done; onAgain: () => void }) {
     <div className="flex items-center justify-center px-2 py-6 lg:absolute lg:inset-4 lg:py-0">
       <div
         role="status"
-        className="rise w-full max-w-[440px] rounded-xl bg-surface p-6 text-center shadow-[0_30px_60px_-36px] shadow-navy/45 md:p-8"
+        className="rise w-full max-w-[440px] rounded-xl bg-surface p-6 md:p-8"
       >
-        <div className="tick-draw mx-auto mb-3.5 grid size-14 place-items-center rounded-full bg-sky-soft">
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className="flex items-center gap-2.5 text-[28px] leading-[1.15] font-medium tracking-[-0.02em] text-navy focus:outline-none"
+        >
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.6"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="size-7 text-sky"
+            className="size-7 flex-none text-sky"
           >
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3.5 2" />
           </svg>
-        </div>
-        <div className="mx-auto flex w-fit max-w-full flex-col">
-          <h2
-            ref={heading}
-            tabIndex={-1}
-            className="text-[30px] leading-[1.1] font-medium tracking-[-0.03em] whitespace-nowrap text-sky focus:outline-none"
-          >
-            Approval pending
-          </h2>
-          <div className="mx-[-1rem] mt-[18px] mb-3.5 w-0 min-w-[calc(100%+2rem)] rounded-lg bg-navy px-4 py-3.5 text-left text-navy-ink">
-            <p className="font-bold">{done.room}</p>
-            <p className="mt-1 text-sm text-navy-ink/85">{done.date}</p>
-            <p className="text-sm text-navy-ink/85">{done.time}</p>
-          </div>
-        </div>
-        <p className="text-[15px] text-ink-muted">
-          Your hours are held while an admin reviews your request. We&apos;ll email{" "}
+          Approval pending
+        </h2>
+        <dl className="mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 rounded-lg border border-line p-4 text-[15px]">
+          <dt className="text-ink-muted">Room</dt>
+          <dd className="flex items-center gap-2">
+            <span className="inline-block min-w-0 truncate rounded-sm border border-outline bg-surface px-2 py-0.5 text-xs leading-4 font-semibold text-navy tabular-nums">
+              {roomName}
+            </span>
+            <span className="flex-none">{floorName}</span>
+          </dd>
+          <dt className="text-ink-muted">Date</dt>
+          <dd>{done.date}</dd>
+          <dt className="text-ink-muted">Time</dt>
+          <dd className="tabular-nums">{done.time}</dd>
+        </dl>
+        <p className="mt-4 text-[15px] text-ink-muted">
+          An admin is reviewing your reservation. We&apos;ll email{" "}
           <strong className="font-semibold [overflow-wrap:anywhere] text-ink">
             {done.email}
           </strong>{" "}
@@ -372,10 +359,11 @@ export default function Workspace({
   const [done, setDone] = useState<Done | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState("");
+  const [detailsOk, setDetailsOk] = useState(false);
 
+  const form = useRef<HTMLFormElement>(null);
   const floorButtons = useRef<Record<number, HTMLButtonElement | null>>({});
   const refocusFloor = useRef(false);
-  const steps = useRef<HTMLDivElement>(null);
   const dateSection = useRef<HTMLElement>(null);
   const hoursSection = useRef<HTMLElement>(null);
   const detailsSection = useRef<HTMLElement>(null);
@@ -459,13 +447,7 @@ export default function Workspace({
       const el = target();
       if (!el) return;
       const behavior = prefersReducedMotion() ? "auto" : "smooth";
-      const box = steps.current;
-      if (box && window.matchMedia("(min-width: 1024px)").matches) {
-        const top = box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top;
-        box.scrollTo({ top, behavior });
-      } else {
-        window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - 76, behavior });
-      }
+      window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - 76, behavior });
     }, delay);
   }
 
@@ -475,7 +457,9 @@ export default function Workspace({
     setRoomId(id);
     setPicked([]);
     setNotice("");
-    if (first) scrollToSection(() => dateSection.current, 120);
+    if (first && !window.matchMedia("(min-width: 1024px)").matches) {
+      scrollToSection(() => dateSection.current, 120);
+    }
   }
 
   function pickDate(next: string) {
@@ -494,9 +478,10 @@ export default function Workspace({
     else window.clearTimeout(scrollTimer.current);
   }
 
-  function clearError(name: string) {
+  function clearFixed(el: HTMLFormElement, name: string) {
+    const stillWrong = validateFields(readFields(el));
     setErrors((prev) => {
-      if (!(name in prev)) return prev;
+      if (!(name in prev) || name in stillWrong) return prev;
       const next = { ...prev };
       delete next[name as keyof FieldErrors];
       return next;
@@ -510,31 +495,21 @@ export default function Workspace({
     }
     window.clearTimeout(scrollTimer.current);
     setNotice("");
-    const data = new FormData(e.currentTarget);
-    const text = (key: string) => String(data.get(key) ?? "").trim();
-    const found = validateFields({
-      name: text("name"),
-      email: text("email").toLowerCase(),
-      contact: text("contact"),
-      expectedPax: text("expectedPax"),
-      consent: data.get("consent") === "on",
-    });
+    const found = validateFields(readFields(e.currentTarget));
     setErrors(found);
     const first = FIELD_ORDER.find((key) => found[key]);
     if (!first) return;
     e.preventDefault();
-    setNotice("Please check your details above.");
     const el = e.currentTarget.elements.namedItem(first) as HTMLElement | null;
     if (!el) return;
     el.focus({ preventScroll: true });
-    const behavior = prefersReducedMotion() ? "auto" : "smooth";
-    const box = steps.current;
-    if (box && window.matchMedia("(min-width: 1024px)").matches) {
-      const top = box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 60;
-      box.scrollTo({ top, behavior });
-    } else {
-      el.scrollIntoView({ block: "center", behavior });
-    }
+    el.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }
+
+  function goToDetails() {
+    const el = form.current?.elements.namedItem("name") as HTMLElement | null;
+    el?.focus({ preventScroll: true });
+    scrollToSection(() => detailsSection.current, 0);
   }
 
   function again() {
@@ -547,6 +522,7 @@ export default function Workspace({
     setSlots(null);
     setNotice("");
     setErrors({});
+    setDetailsOk(false);
   }
 
   const hoursMeta = chosen.length
@@ -581,13 +557,13 @@ export default function Workspace({
         className={`rise-desk relative rounded-xl bg-mist p-3 ${
           done
             ? "lg:h-[max(460px,calc(100dvh_-_200px))]"
-            : "lg:h-[max(520px,calc(100dvh_-_276px))]"
+            : ""
         }`}
       >
         {done ? (
           <Success done={done} onAgain={again} />
         ) : (
-          <div className="flex flex-col gap-3 lg:grid lg:h-full lg:grid-cols-[64px_minmax(0,1fr)_340px]">
+          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[64px_minmax(0,1fr)_340px] lg:grid-rows-[496px_auto] lg:gap-y-0">
             <nav
               aria-label="Floors"
               style={{ animationDelay: "540ms" }}
@@ -624,13 +600,31 @@ export default function Workspace({
             <FloorPlan floor={floor} rooms={rooms} picked={room} onPick={pickRoom} />
 
             {locked ? (
-              <div aria-hidden="true" className="hidden lg:block" />
+              <div aria-hidden="true" className="hidden min-h-0 flex-col gap-3 lg:flex">
+                <div className="flex-none rounded-lg bg-surface/50 p-3.5">
+                  <div className="mb-3 h-4 w-12 rounded-sm bg-line" />
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="size-8 rounded-md bg-line/70" />
+                    <div className="h-4 w-28 rounded-sm bg-line" />
+                    <div className="size-8 rounded-md bg-line/70" />
+                  </div>
+                  <div className="grid grid-cols-7 gap-0.5">
+                    {Array.from({ length: 35 }, (_, i) => (
+                      <div key={i} className="h-8 rounded-md bg-line/50" />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-none flex-col gap-2 rounded-xl bg-navy/10 p-4">
+                  <div className="h-3.5 w-24 rounded-sm bg-navy/10" />
+                  <div className="mt-1 h-5 w-32 rounded-sm bg-navy/10" />
+                  <div className="h-3.5 w-40 rounded-sm bg-navy/10" />
+                  <div className="h-3.5 w-28 rounded-sm bg-navy/10" />
+                  <div className="mt-2 h-11 rounded-pill bg-navy/10" />
+                </div>
+              </div>
             ) : (
-              <div className="rise-desk relative flex min-h-0 min-w-0 flex-col gap-3">
-                <div
-                  ref={steps}
-                  className="flex min-w-0 flex-col gap-2.5 lg:-mr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:rounded-lg lg:pr-1.5 lg:overscroll-contain lg:[scrollbar-color:var(--color-outline-soft)_transparent] lg:[scrollbar-width:thin]"
-                >
+              <>
+                <div className="rise-desk flex min-w-0 flex-col gap-3 lg:sticky lg:top-[min(5rem,calc(100dvh_-_37rem))] lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-start">
                   <section
                     ref={dateSection}
                     aria-labelledby="section-date"
@@ -641,6 +635,64 @@ export default function Workspace({
                     <Calendar today={today} max={max} value={date} onPick={pickDate} />
                   </section>
 
+                  <aside
+                    aria-label="Reservation"
+                    className="fixed inset-x-3 bottom-3 z-20 mx-auto grid max-w-[720px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-xl bg-navy py-3 pr-3 pl-4 text-navy-ink lg:static lg:mx-0 lg:block lg:max-w-none lg:flex-none lg:p-4"
+                  >
+                    <div aria-live="polite" className="min-w-0">
+                      <p className="hidden text-[13px] text-brand-tint lg:block">Reservation</p>
+                      <p className="flex items-center gap-2 text-[15px] font-medium lg:mt-3">
+                        <span className="inline-block max-w-full min-w-0 truncate rounded-sm border border-navy-ink bg-surface px-2 py-0.5 text-xs leading-4 font-semibold text-navy tabular-nums">
+                          {room.name}
+                        </span>
+                        <span className="flex-none">Floor {room.floor}</span>
+                      </p>
+                      <dl className="mt-1 grid grid-cols-1 gap-y-0.5 text-[13px] lg:mt-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-x-4 lg:text-sm">
+                        <dt className="hidden text-brand-tint lg:block">Date</dt>
+                        <dd className="truncate tabular-nums">{longDate.format(asDate(date))}</dd>
+                        <dt className="hidden text-brand-tint lg:block">Time</dt>
+                        <dd className="truncate tabular-nums">
+                          {chosen.length ? formatRange24(chosen) : "Pick your time"}
+                        </dd>
+                      </dl>
+                    </div>
+                    <button
+                      type="submit"
+                      form="details"
+                      disabled={pending || chosen.length === 0}
+                      className={`inline-flex min-h-11 min-w-[120px] items-center justify-center gap-2 rounded-pill px-[22px] text-[15px] font-medium disabled:cursor-not-allowed lg:mt-3 lg:w-full ${
+                        pending
+                          ? "cursor-progress bg-brand-tint text-navy"
+                          : "bg-surface text-navy enabled:hover:bg-brand-tint disabled:bg-navy-ink/15 disabled:text-navy-ink/70"
+                      } motion-safe:transition-[background-color,color] motion-safe:duration-300 motion-safe:delay-75`}
+                    >
+                      {pending ? "Reserving…" : "Reserve"}
+                      {pending ? (
+                        <span
+                          aria-hidden="true"
+                          className="size-4 rounded-full border-2 border-navy/25 border-t-navy motion-safe:animate-spin"
+                        />
+                      ) : null}
+                    </button>
+                    {chosen.length > 0 && !detailsOk && !pending ? (
+                      <button
+                        type="button"
+                        onClick={goToDetails}
+                        className="col-span-full mt-2 inline-flex items-center gap-1.5 justify-self-start rounded-sm text-[13px] font-semibold text-brand-tint hover:text-navy-ink motion-safe:transition-colors motion-safe:duration-250"
+                      >
+                        Next: add your details
+                        <Arrow className="size-3.5 rotate-90" />
+                      </button>
+                    ) : null}
+                    <p
+                      role="alert"
+                      className="col-span-full text-[13px] font-semibold text-brand-tint empty:hidden lg:mt-2"
+                    >
+                      {notice}
+                    </p>
+                  </aside>
+                </div>
+                <div className="rise-desk flex min-w-0 flex-col gap-3 lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mt-3 lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
                   <section
                     ref={hoursSection}
                     aria-labelledby="section-hours"
@@ -717,12 +769,16 @@ export default function Workspace({
                   >
                     <SectionHead id="section-details" title="Your details" />
                     <form
+                      ref={form}
                       id="details"
                       action={formAction}
                       noValidate
                       onSubmit={onSubmit}
                       onChange={(e) => {
-                        if (e.target instanceof HTMLInputElement) clearError(e.target.name);
+                        if (e.target instanceof HTMLInputElement) {
+                          clearFixed(e.currentTarget, e.target.name);
+                        }
+                        setDetailsOk(Object.keys(validateFields(readFields(e.currentTarget))).length === 0);
                       }}
                       className="flex flex-col gap-2.5"
                     >
@@ -737,7 +793,7 @@ export default function Workspace({
                         autoComplete="name"
                         required
                         defaultValue={state.values?.name}
-                        error={errors.name}
+                        invalid={!!errors.name}
                       />
                       <TextField
                         name="email"
@@ -747,7 +803,7 @@ export default function Workspace({
                         autoComplete="email"
                         required
                         defaultValue={state.values?.email}
-                        error={errors.email}
+                        invalid={!!errors.email}
                       />
                       <TextField
                         name="contact"
@@ -759,7 +815,7 @@ export default function Workspace({
                         placeholder="0917 123 4567"
                         required
                         defaultValue={state.values?.contact}
-                        error={errors.contact}
+                        invalid={!!errors.contact}
                       />
                       <TextField
                         name="expectedPax"
@@ -773,7 +829,7 @@ export default function Workspace({
                         max={100}
                         required
                         defaultValue={state.values?.expectedPax}
-                        error={errors.expectedPax}
+                        invalid={!!errors.expectedPax}
                       />
                       <TextField
                         name="dgroupLeader"
@@ -796,78 +852,28 @@ export default function Workspace({
                           className={`resize-y py-2 ${fieldClass}`}
                         />
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <label
-                          className={`flex cursor-pointer items-start gap-2.5 rounded-md bg-brand-soft p-2.5 text-[13px] leading-[1.45] text-ink hover:bg-brand-tint ${motion} ${
-                            errors.consent ? "inset-ring-[1.5px] inset-ring-danger" : ""
-                          }`}
-                        >
-                          <input
-                            name="consent"
-                            type="checkbox"
-                            required
-                            autoComplete="off"
-                            aria-describedby="field-consent-error"
-                            aria-invalid={errors.consent ? true : undefined}
-                            className="mt-px size-[18px] flex-none cursor-pointer accent-brand-strong"
-                          />
-                          <span>
-                            I agree that my name, email and contact number will be stored
-                            and used only to manage this room booking.
-                          </span>
-                        </label>
-                        <FieldError id="field-consent-error" message={errors.consent} />
-                      </div>
+                      <label
+                        className={`flex cursor-pointer items-start gap-2.5 rounded-md bg-brand-soft p-2.5 text-[13px] leading-[1.45] text-ink hover:bg-brand-tint ${motion} ${
+                          errors.consent ? "inset-ring-[1.5px] inset-ring-danger" : ""
+                        }`}
+                      >
+                        <input
+                          name="consent"
+                          type="checkbox"
+                          required
+                          autoComplete="off"
+                          aria-invalid={errors.consent ? true : undefined}
+                          className="mt-px size-[18px] flex-none scroll-my-28 cursor-pointer accent-brand-strong"
+                        />
+                        <span>
+                          I agree that my name, email and contact number will be stored
+                          and used only to manage this room booking.
+                        </span>
+                      </label>
                     </form>
                   </section>
                 </div>
-
-                <aside
-                  aria-label="Reservation information"
-                  className="fixed inset-x-3 bottom-3 z-20 mx-auto grid max-w-[720px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg bg-navy py-3 pr-3 pl-4 text-navy-ink shadow-[0_18px_40px_-24px] shadow-navy/90 lg:static lg:mx-0 lg:block lg:max-w-none lg:flex-none lg:p-4"
-                >
-                  <div aria-live="polite" className="min-w-0">
-                    <p className="hidden text-[11px] font-semibold tracking-[0.08em] text-brand-tint uppercase lg:block">
-                      Reservation Information
-                    </p>
-                    <p className="truncate text-[15px] font-bold tracking-[-0.01em] lg:mt-2 lg:text-base">
-                      {room.name} · Floor {room.floor}
-                    </p>
-                    <p className="truncate text-[13px] leading-[1.35] text-navy-ink/85 lg:mt-0.5 lg:text-sm">
-                      {longDate.format(asDate(date))}
-                    </p>
-                    <p className="truncate text-[13px] leading-[1.35] text-navy-ink/85 lg:text-sm">
-                      {chosen.length ? formatRange24(chosen) : "Pick your time"}
-                    </p>
-                  </div>
-                  <button
-                    type="submit"
-                    form="details"
-                    disabled={pending || chosen.length === 0}
-                    className={`group inline-flex min-h-11 min-w-[120px] items-center justify-center gap-2 rounded-pill px-[22px] text-[15px] font-semibold disabled:cursor-not-allowed disabled:bg-surface/12 disabled:text-navy-ink/60 lg:mt-3 lg:w-full ${
-                      pending
-                        ? "cursor-progress bg-brand-tint text-navy"
-                        : "bg-surface text-navy enabled:hover:bg-brand-tint enabled:hover:ring-3 enabled:hover:ring-brand-tint/35"
-                    } motion-safe:transition-[background-color,color,box-shadow] motion-safe:duration-300 motion-safe:delay-75`}
-                  >
-                    {pending ? "Reserving…" : "Reserve"}
-                    {pending ? (
-                      <span
-                        aria-hidden="true"
-                        className="size-4 rounded-full border-2 border-navy/25 border-t-navy motion-safe:animate-spin"
-                      />
-                    ) : (
-                      <Arrow className="group-enabled:group-hover:translate-x-[3px]" />
-                    )}
-                  </button>
-                  <p
-                    role="alert"
-                    className="col-span-full text-[13px] font-semibold text-brand-tint empty:hidden lg:mt-2"
-                  >
-                    {notice}
-                  </p>
-                </aside>
-              </div>
+              </>
             )}
           </div>
         )}
