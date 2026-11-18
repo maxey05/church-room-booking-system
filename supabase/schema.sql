@@ -20,7 +20,7 @@ create table bookings (
   name text not null,                -- booker name, or block label
   email text, contact text, expected_pax int, dgroup_leader text, notes text,   -- null for blocks
   cancel_token uuid not null default gen_random_uuid(),
-  status text not null default 'booked' check (status in ('pending','booked','declined','cancelled')),
+  status text not null default 'booked' check (status in ('pending','booked','declined','cancelled','expired')),
   created_at timestamptz not null default now()
 );
 
@@ -39,7 +39,7 @@ insert into settings (id, daily_booking_limit) values (true, 3);
 create table email_log (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
-  kind text not null check (kind in ('approval','decline')),
+  kind text not null check (kind in ('approval','decline','cancellation')),
   status text not null check (status in ('sent','failed','resent')),
   recipient_name text not null,
   recipient_email text not null,

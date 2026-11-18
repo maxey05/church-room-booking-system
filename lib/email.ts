@@ -59,6 +59,25 @@ export function composeEmail(
       ],
     };
   }
+  if (kind === "cancellation") {
+    return {
+      subject: `Room booking cancelled: ${b.roomName} — ${formatDate(b.date)}`,
+      lines: [
+        `Hi ${b.name},`,
+        "",
+        "Sorry, your approved room booking has been cancelled by an admin.",
+        "",
+        where,
+        when,
+        "",
+        "Those hours are open again. You're welcome to book another time or room here:",
+        link,
+        "",
+        "God bless,",
+        "CCF Alabang Room Booking",
+      ],
+    };
+  }
   return {
     subject: `Room booking not approved: ${b.roomName} — ${formatDate(b.date)}`,
     lines: [
@@ -79,13 +98,13 @@ export function composeEmail(
 }
 
 function liveLink(kind: EmailKind, token: string | null): string {
-  if (kind === "decline") return `${requireEnv("SITE_URL")}/rooms`;
+  if (kind !== "approval") return `${requireEnv("SITE_URL")}/rooms`;
   if (!token) throw new Error("This approval email has no cancel link to rebuild.");
   return `${requireEnv("SITE_URL")}/cancel/${token}`;
 }
 
 export function previewLink(kind: EmailKind): string {
-  return kind === "decline" ? `${process.env.SITE_URL ?? ""}/rooms` : "…";
+  return kind !== "approval" ? `${process.env.SITE_URL ?? ""}/rooms` : "…";
 }
 
 export function rowBooking(row: EmailLogRow): EmailBooking {
@@ -148,6 +167,10 @@ export async function sendApproved(b: DecidedBooking): Promise<void> {
 
 export async function sendDeclined(b: Omit<DecidedBooking, "cancelToken">): Promise<void> {
   await deliver("decline", b, null);
+}
+
+export async function sendCancelled(b: Omit<DecidedBooking, "cancelToken">): Promise<void> {
+  await deliver("cancellation", b, null);
 }
 
 export async function resendLoggedEmail(id: number): Promise<ResendOutcome> {

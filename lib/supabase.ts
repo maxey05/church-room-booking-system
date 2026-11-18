@@ -28,11 +28,11 @@ export type Booking = {
   dgroup_leader: string | null;
   notes: string | null;
   cancel_token: string;
-  status: "pending" | "booked" | "declined" | "cancelled";
+  status: "pending" | "booked" | "declined" | "cancelled" | "expired";
   created_at: string;
 };
 
-export type EmailKind = "approval" | "decline";
+export type EmailKind = "approval" | "decline" | "cancellation";
 export type EmailStatus = "sent" | "failed" | "resent";
 
 export type EmailLogRow = {

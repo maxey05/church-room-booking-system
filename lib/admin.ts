@@ -1,3 +1,4 @@
+import { expireStalePending } from "@/lib/bookings";
 import { groupByToken, hasStarted, manilaNow } from "@/lib/rules";
 import { db, type Booking } from "@/lib/supabase";
 
@@ -6,10 +7,19 @@ export type PendingGroup = PendingRow & { hours: number[] };
 
 const MAX_PENDING_ROWS = 1000;
 
+export async function expireStaleRequests(): Promise<void> {
+  try {
+    await expireStalePending();
+  } catch (e) {
+    console.error("Expiring past requests failed", e);
+  }
+}
+
 export async function loadPendingRequests(): Promise<{
   pending: PendingGroup[];
   capped: boolean;
 }> {
+  await expireStaleRequests();
   const today = manilaNow().date;
   const { data, error } = await db()
     .from("bookings")

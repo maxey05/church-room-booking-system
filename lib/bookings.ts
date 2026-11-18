@@ -2,6 +2,7 @@ import {
   contactVariants,
   DEFAULT_DAILY_LIMIT,
   manilaDayRange,
+  groupByToken,
   manilaNow,
   parseDailyLimit,
   hasStarted,
@@ -35,7 +36,7 @@ type Row = {
   hour: number;
   date: string;
   name: string;
-  status: "pending" | "booked" | "declined" | "cancelled";
+  status: "pending" | "booked" | "declined" | "cancelled" | "expired";
   room_id: number;
   rooms: { name: string; floor: number } | null;
 };
@@ -111,6 +112,12 @@ export async function decideByToken(
   if (updateError) throw new Error(updateError.message);
   if (updated.length === 0) return null;
 
+  return toDecided(rows, token);
+}
+
+function toDecided(rows: PendingRow[], token: string): DecidedBooking | null {
+  const first = rows[0];
+  if (!first?.rooms) return null;
   return {
     name: first.name,
     email: first.email,
@@ -120,6 +127,40 @@ export async function decideByToken(
     hours: rows.map((r) => r.hour),
     cancelToken: token,
   };
+}
+
+export async function findBookedGroup(token: string): Promise<DecidedBooking | null> {
+  if (!UUID.test(token)) return null;
+  const { data, error } = await db()
+    .from("bookings")
+    .select("hour, date, name, email, room_id, rooms(name, floor)")
+    .eq("cancel_token", token)
+    .eq("kind", "booking")
+    .eq("status", "booked")
+    .order("hour");
+  if (error) throw new Error(error.message);
+  return toDecided(data as unknown as PendingRow[], token);
+}
+
+export async function expireStalePending(now: Date = new Date()): Promise<void> {
+  const { data, error } = await db()
+    .from("bookings")
+    .select("cancel_token, date, hour")
+    .eq("kind", "booking")
+    .eq("status", "pending")
+    .lte("date", manilaNow(now).date);
+  if (error) throw new Error(error.message);
+  const tokens = groupByToken(data as { cancel_token: string; date: string; hour: number }[])
+    .filter((g) => hasStarted(g.date, g.hours[0], now))
+    .map((g) => g.cancel_token);
+  if (tokens.length === 0) return;
+  const { error: updateError } = await db()
+    .from("bookings")
+    .update({ status: "expired" })
+    .in("cancel_token", tokens)
+    .eq("kind", "booking")
+    .eq("status", "pending");
+  if (updateError) throw new Error(updateError.message);
 }
 
 export async function getDailyLimit(): Promise<number> {

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cancelByToken, decideByToken } from "@/lib/bookings";
+import { cancelByToken, decideByToken, findBookedGroup } from "@/lib/bookings";
 import {
   composeEmail,
   previewLink,
   resendLoggedEmail,
   rowBooking,
   sendApproved,
+  sendCancelled,
   sendDeclined,
 } from "@/lib/email";
 import {
@@ -54,8 +55,19 @@ export async function cancelFromCalendar(token: string, date: string): Promise<s
   await requireAdmin();
   const params = new URLSearchParams();
   if (isRealDate(date)) params.set("date", date);
+  const booked = await findBookedGroup(token);
   if ((await cancelByToken(token)) > 0) {
+    let sent = 0;
+    if (booked?.email) {
+      try {
+        await sendCancelled(booked);
+        sent = 1;
+      } catch (e) {
+        console.error("Cancellation email failed", e);
+      }
+    }
     params.set("notice", "cancelled");
+    params.set("sent", String(sent));
     params.set("t", token);
   } else {
     const b = await decideByToken(token, "decline");
