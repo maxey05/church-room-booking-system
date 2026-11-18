@@ -43,7 +43,7 @@ export default function NoticeDialog({
           {title}
         </h2>
         <div id={textId} className="flex flex-col gap-3 text-sm leading-6">
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-slot bg-mist p-3.5">
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-slot bg-mist p-4">
             {rows.map(([label, value]) => (
               <div key={label} className="contents">
                 <dt className="text-ink-muted">{label}</dt>

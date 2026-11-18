@@ -38,19 +38,19 @@ export default async function AdminLayout({
             <div className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="grid size-9 flex-none place-items-center rounded-pill bg-brand-tint text-sm font-semibold text-navy"
+                className="grid size-9 flex-none place-items-center rounded-pill bg-sidebar-ink/14 text-xs font-semibold text-sidebar-ink"
               >
                 AD
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="text-sm font-medium">Admin</span>
-                <span className="truncate text-xs text-sidebar-ink/70">{admin.email}</span>
+                <span className="truncate text-xs text-sidebar-ink/65">{admin.email}</span>
               </div>
               <form action={signOut}>
                 <button
                   type="submit"
                   aria-label="Log out"
-                  className="grid size-11 place-items-center rounded-slot text-sidebar-ink/75 hover:bg-sidebar-ink/10"
+                  className="grid size-11 place-items-center rounded-slot text-sidebar-ink/72 hover:bg-sidebar-ink/8 hover:text-sidebar-ink motion-safe:transition-[color,background-color] motion-safe:duration-300 motion-safe:delay-75"
                 >
                   <svg
                     width="18"
@@ -58,7 +58,7 @@ export default async function AdminLayout({
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.8"
+                    strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     aria-hidden="true"

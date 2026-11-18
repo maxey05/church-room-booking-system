@@ -22,7 +22,7 @@ function Icon({ paths }: { paths: string[] }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -36,7 +36,7 @@ function Icon({ paths }: { paths: string[] }) {
 }
 
 const link =
-  "flex min-h-11 items-center gap-3 whitespace-nowrap rounded-slot px-3 text-sm font-medium hover:bg-sidebar-ink/10 motion-safe:transition-colors motion-safe:duration-150";
+  "flex min-h-11 items-center gap-3 whitespace-nowrap rounded-slot px-3 text-sm font-medium hover:bg-sidebar-ink/8 hover:text-sidebar-ink motion-safe:transition-[color,background-color] motion-safe:duration-300 motion-safe:delay-75";
 
 export default function AdminSidebar({
   pendingCount,
@@ -61,7 +61,6 @@ export default function AdminSidebar({
       icon: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 7v5l3 2"],
       badge: pendingCount,
       badgeLabel: "waiting",
-      badgeClass: "bg-warning",
     },
     {
       href: "/admin/list",
@@ -87,7 +86,7 @@ export default function AdminSidebar({
       icon: ["M4 4h16v16H4z", "M4 6l8 7 8-7"],
       badge: failedEmails,
       badgeLabel: "failed",
-      badgeClass: "bg-danger",
+      badgeClass: "bg-danger text-navy-ink",
     },
   ];
 
@@ -99,12 +98,14 @@ export default function AdminSidebar({
         key={item.href}
         href={item.href}
         aria-current={active ? "page" : undefined}
-        className={`${link} ${active ? "bg-sidebar-ink/15 text-sidebar-ink" : "text-sidebar-ink/75"}`}
+        className={`${link} ${active ? "bg-sidebar-ink/12 text-sidebar-ink ring-1 ring-inset ring-sidebar-ink/8" : "text-sidebar-ink/72"}`}
       >
         <Icon paths={item.icon} />
         <span className="flex-1">{item.label}</span>
         {item.badge !== undefined && item.badge > 0 && (
-          <span className={`rounded-pill ${item.badgeClass} px-2 py-0.5 text-xs font-bold text-navy-ink`}>
+          <span
+            className={`grid h-5.5 min-w-5.5 place-items-center rounded-pill px-2 text-xs font-medium tabular-nums ${item.badgeClass ?? "bg-sidebar-ink/14 text-sidebar-ink"}`}
+          >
             <span className="sr-only">
               {item.badge} {item.badgeLabel}
             </span>
@@ -117,30 +118,30 @@ export default function AdminSidebar({
 
   return (
     <aside className="bg-sidebar text-sidebar-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-none lg:flex-col lg:overflow-y-auto">
-      <div className="flex items-center gap-2.5 px-4 pt-4 lg:px-5 lg:pt-6">
+      <div className="flex items-center gap-3 px-4 pt-4 lg:px-5 lg:pt-6">
         <Image
           src="/ccf-icon.png"
           alt=""
           width={512}
           height={512}
-          className="size-9 flex-none rounded-[10px]"
+          className="size-8 flex-none rounded-lg"
         />
         <div className="flex min-w-0 flex-col">
           <span className="text-[15px] font-semibold leading-tight">Room Booking</span>
-          <span className="text-xs text-sidebar-ink/70">Admin</span>
+          <span className="text-xs text-sidebar-ink/65">Admin</span>
         </div>
       </div>
       <nav
         aria-label="Admin"
-        className="flex gap-1 overflow-x-auto px-3 py-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:py-5"
+        className="flex gap-0.5 overflow-x-auto px-3 py-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:py-5"
       >
         {main.map(renderItem)}
-        <p className="hidden px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-sidebar-ink/60 lg:block">
+        <p className="hidden px-3 pb-2 pt-5 text-xs text-sidebar-ink/55 lg:block">
           Manage
         </p>
         {manage.map(renderItem)}
       </nav>
-      <div className="border-t border-sidebar-ink/15 p-3 lg:p-4">{footer}</div>
+      <div className="border-t border-sidebar-ink/10 p-3 lg:p-4">{footer}</div>
     </aside>
   );
 }

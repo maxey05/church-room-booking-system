@@ -1,5 +1,4 @@
 import Form from "next/form";
-import Link from "next/link";
 import { isMissingEmailLog } from "@/lib/admin";
 import {
   addDays,
@@ -14,6 +13,7 @@ import {
 } from "@/lib/rules";
 import { db, requireAdmin, type EmailLogRow, type EmailStatus } from "@/lib/supabase";
 import DateField from "../date-field";
+import { Tabs } from "../parts";
 import RoomSelect from "../room-select";
 import EmailTable, { type EmailRow } from "./email-table";
 
@@ -34,10 +34,12 @@ const TYPES = [
   { value: "", label: "All emails" },
   { value: "approval", label: "Approvals" },
   { value: "decline", label: "Declines" },
+  { value: "cancellation", label: "Cancellations" },
 ];
 
 const field =
-  "min-h-11 rounded-pill border border-line bg-surface px-4 text-base font-normal text-ink hover:border-outline motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75";
+  "min-h-11 rounded-pill border border-line bg-surface px-4 text-base font-normal text-ink hover:border-outline motion-safe:transition-[border-color] motion-safe:duration-300 motion-safe:delay-75";
+const label = "flex flex-col gap-2 text-[13px] font-medium leading-[18px]";
 
 async function loadNotice(
   sp: Record<string, string | string[] | undefined>,
@@ -120,10 +122,10 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
   if (error) {
     if (!isMissingEmailLog(error)) throw new Error(error.message);
     return (
-      <div>
-        <h1 className="tracking-tight">Email Log</h1>
-        <div className="mt-8 rounded-card-mobile border border-dashed border-outline bg-mist p-8 text-center md:rounded-card">
-          <p className="text-lg font-semibold text-navy">The email log isn&apos;t set up yet</p>
+      <div className="flex flex-col gap-6">
+        <h1>Email Log</h1>
+        <div className="rounded-card-mobile border border-dashed border-outline bg-mist p-8 text-center">
+          <p className="text-lg font-medium text-navy">The email log isn&apos;t set up yet</p>
           <p className="mt-1 text-ink-muted">
             Run supabase/migrations/012_email_log.sql in the Supabase SQL Editor, then refresh
             this page.
@@ -169,18 +171,18 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
   }
 
   return (
-    <div>
-      <h1 className="tracking-tight">Email Log</h1>
+    <div className="flex flex-col gap-6">
+      <h1>Email Log</h1>
 
       {notice && (
-        <p role={notice.role} className={`mt-3 ${notice.className}`}>
+        <p role={notice.role} className={notice.className}>
           {notice.text}
         </p>
       )}
 
-      <Form action="/admin/email-log" className="mt-6 flex flex-wrap items-end gap-3">
+      <Form action="/admin/email-log" className="flex flex-wrap items-end gap-3">
         {active !== "all" && <input type="hidden" name="status" value={active} />}
-        <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm font-semibold">
+        <label className={`${label} min-w-56 flex-1`}>
           Search
           <span className="relative flex">
             <svg
@@ -189,7 +191,7 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
@@ -208,8 +210,8 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
             />
           </span>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Email
+        <label className={label}>
+          Email type
           <RoomSelect
             name="type"
             defaultValue={type}
@@ -217,17 +219,17 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
             className={`${field} min-w-48`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
+        <label className={label}>
           From
           <DateField name="from" defaultValue={from} className={field} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
+        <label className={label}>
           To
           <DateField name="to" defaultValue={to} className={field} />
         </label>
         <button
           type="submit"
-          className="min-h-11 rounded-pill bg-brand-strong px-5 font-semibold text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
+          className="min-h-11 rounded-pill bg-brand-strong px-5 text-sm font-medium text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color] motion-safe:duration-300 motion-safe:delay-75"
         >
           Filter
         </button>
@@ -235,44 +237,36 @@ export default async function EmailLogPage({ searchParams }: PageProps<"/admin/e
 
       <section
         aria-label="Emails"
-        className="mt-6 overflow-hidden rounded-card-mobile border border-line bg-surface"
+        className="overflow-hidden rounded-card-mobile border border-line bg-surface"
       >
-        <nav aria-label="Email status" className="flex flex-wrap gap-2 border-b border-line p-3 md:px-5">
-          {TABS.map((t) => {
-            const on = t.key === active;
-            return (
-              <Link
-                key={t.key}
-                href={tabHref(t.key)}
-                aria-current={on ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-pill px-4 text-sm font-semibold motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75 ${
-                  on ? "bg-navy text-navy-ink" : "bg-mist text-navy hover:bg-brand-soft"
-                }`}
-              >
-                {t.label}
-                <span className={on ? "text-navy-ink/80" : "text-ink-muted"}>
-                  {counts[t.key] ?? 0}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="border-b border-line px-4 py-3">
+          <Tabs
+            label="Email status"
+            current={active}
+            items={TABS.map((t) => ({
+              key: t.key,
+              label: t.label,
+              href: tabHref(t.key),
+              count: counts[t.key] ?? 0,
+            }))}
+          />
+        </div>
 
         {rows.length === 0 ? (
-          <p className="p-5 text-ink-muted">No emails match.</p>
+          <p className="p-6 text-ink-muted">No emails match</p>
         ) : (
           <EmailTable rows={rows} backQuery={paramsFor(active).toString()} />
         )}
 
-        <div className="border-t border-line px-5 py-3 text-sm text-ink-muted">
+        <div className="border-t border-line px-6 py-3 text-[13px] leading-[18px] text-ink-muted">
           {truncated && (
-            <p role="status" className="mb-1 font-semibold text-warning">
+            <p role="status" className="mb-1 font-medium text-warning">
               Showing the first {logs.length} emails. Narrow the filters to see the rest.
             </p>
           )}
           <p>
             Showing {shown.length} of {logs.length} emails from {formatDate(from)} to{" "}
-            {formatDate(to)}.
+            {formatDate(to)}
           </p>
         </div>
       </section>

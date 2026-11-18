@@ -5,8 +5,8 @@ import { parseRoomPax } from "@/lib/rules";
 import { updateRoomCapacity } from "../actions";
 
 const fade =
-  "motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75";
-const iconButton = `grid size-11 place-items-center rounded-pill hover:bg-mist ${fade}`;
+  "motion-safe:transition-[color,background-color,border-color] motion-safe:duration-300 motion-safe:delay-75";
+const iconButton = `grid size-11 place-items-center rounded-lg hover:bg-mist ${fade}`;
 
 export default function CapacityCell({
   roomId,
@@ -122,7 +122,7 @@ export default function CapacityCell({
           }}
           onBlur={() => commit(false)}
           aria-invalid={error ? true : undefined}
-          className="h-11 w-22 rounded-pill border-2 border-brand-strong bg-surface px-4 text-base font-semibold text-ink"
+          className="h-11 w-22 rounded-lg border border-brand bg-surface px-3 text-base font-medium tabular-nums text-ink"
         />
         <span className="text-ink-muted">pax</span>
         <button
@@ -138,7 +138,7 @@ export default function CapacityCell({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.2"
+            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -159,7 +159,7 @@ export default function CapacityCell({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.2"
+            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -169,7 +169,7 @@ export default function CapacityCell({
           </svg>
         </button>
         {error ? (
-          <p role="alert" className="basis-full text-sm font-semibold text-danger">
+          <p role="alert" className="basis-full text-sm font-medium text-danger">
             {error}
           </p>
         ) : (
@@ -186,9 +186,9 @@ export default function CapacityCell({
         type="button"
         aria-label={`Edit capacity for ${roomName}`}
         onClick={start}
-        className={`group -ml-[13px] inline-flex min-h-11 items-center gap-2 rounded-slot border border-transparent px-3 font-medium text-ink hover:border-brand-tint hover:bg-brand-soft ${fade}`}
+        className={`-ml-[13px] inline-flex min-h-11 items-center gap-2 rounded-lg border border-dashed border-transparent px-3 text-ink hover:border-outline-soft hover:bg-bg ${fade}`}
       >
-        <span className={value === null ? "text-ink-muted" : undefined}>
+        <span className={value === null ? "text-ink-muted" : "tabular-nums"}>
           {value === null ? "Not set yet" : `${value} pax`}
         </span>
         <svg
@@ -197,17 +197,17 @@ export default function CapacityCell({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-ink-muted opacity-60 group-hover:opacity-100"
+          className="text-ink-muted"
           aria-hidden="true"
         >
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
         </svg>
       </button>
-      <span role="status" className="text-sm font-semibold text-success">
+      <span role="status" className="text-sm font-medium text-success">
         {saved ? "Saved" : ""}
       </span>
     </div>

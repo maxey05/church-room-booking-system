@@ -31,6 +31,7 @@ export default function CancelButton({
   action,
   isRequest,
   name,
+  email,
   room,
   date,
   time,
@@ -38,6 +39,7 @@ export default function CancelButton({
   action: () => Promise<string>;
   isRequest: boolean;
   name: string;
+  email: string;
   room: string;
   date: string;
   time: string;
@@ -65,7 +67,7 @@ export default function CancelButton({
         type="button"
         aria-label={`${isRequest ? "Decline request from" : "Cancel booking for"} ${name}`}
         onClick={() => ref.current?.showModal()}
-        className={`absolute right-1 top-1 grid size-7 place-items-center rounded-pill text-ink-muted before:absolute before:-inset-2 hover:bg-danger/10 hover:text-danger ${fade}`}
+        className={`absolute right-1 top-1 grid size-7 place-items-center rounded-md text-ink-muted before:absolute before:-inset-2 hover:bg-danger/10 hover:text-danger ${fade}`}
       >
         <svg
           width="14"
@@ -73,7 +75,7 @@ export default function CancelButton({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.2"
+          strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -95,7 +97,7 @@ export default function CancelButton({
             {isRequest ? "Decline this request?" : "Cancel this booking?"}
           </h2>
           <div id={textId} className="flex flex-col gap-3 text-sm leading-6">
-            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-slot bg-mist p-3.5">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-slot bg-mist p-4">
               {rows.map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-ink-muted">{label}</dt>
@@ -104,9 +106,16 @@ export default function CancelButton({
               ))}
             </dl>
             <p className="text-ink-muted">
-              {isRequest
-                ? "A decline email will be sent."
-                : "The hours will be free again. The booker will not be emailed."}
+              {isRequest ? (
+                "A decline email will be sent."
+              ) : email ? (
+                <>
+                  A cancellation email will be sent to{" "}
+                  <span className="font-semibold text-ink [overflow-wrap:anywhere]">{email}</span>.
+                </>
+              ) : (
+                "The hours will be free again. No email is on file, so the booker will not be notified."
+              )}
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">

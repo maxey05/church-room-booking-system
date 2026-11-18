@@ -56,7 +56,7 @@ export function DeclineButton({
       <button
         type="button"
         onClick={() => ref.current?.showModal()}
-        className={`min-h-11 rounded-pill border border-danger px-3.5 text-sm font-semibold text-danger hover:bg-danger/10 ${fade}`}
+        className={`min-h-11 rounded-pill border border-outline-soft bg-surface px-4 text-sm font-medium text-danger hover:border-danger hover:bg-danger/10 ${fade}`}
       >
         Decline
       </button>
@@ -74,7 +74,7 @@ export function DeclineButton({
             Decline this request?
           </h2>
           <div id={textId} className="flex flex-col gap-3 text-sm leading-6">
-            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-slot bg-mist p-3.5">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-slot bg-mist p-4">
               {rows.map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-ink-muted">{label}</dt>

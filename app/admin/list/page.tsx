@@ -1,5 +1,4 @@
 import Form from "next/form";
-import Link from "next/link";
 import {
   addDays,
   byFloorThenName,
@@ -13,7 +12,9 @@ import {
   searchPattern,
 } from "@/lib/rules";
 import { db, requireAdmin, type Booking } from "@/lib/supabase";
+import { expireStaleRequests } from "@/lib/admin";
 import DateField from "../date-field";
+import { Status, Tabs, type StatusKind } from "../parts";
 import RoomSelect from "../room-select";
 
 type Room = { id: number; name: string; floor: number };
@@ -30,26 +31,34 @@ const TABS: { key: "all" | Status; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "declined", label: "Declined" },
   { key: "cancelled", label: "Cancelled" },
+  { key: "expired", label: "Expired" },
 ];
 
-const STATUS_PILL: Record<Status, { label: string; className: string }> = {
-  booked: { label: "Approved", className: "bg-success/10 text-success" },
-  pending: { label: "Pending", className: "bg-warning/15 text-warning" },
-  declined: { label: "Declined", className: "bg-danger/10 text-danger" },
-  cancelled: { label: "Cancelled", className: "bg-mist text-ink-muted" },
+const STATUS_KIND: Record<Status, StatusKind> = {
+  booked: "approved",
+  pending: "pending",
+  declined: "declined",
+  cancelled: "cancelled",
+  expired: "expired",
 };
 
+function emailFontSize(email: string): number {
+  return Math.max(11, Math.min(13, 13 - (email.length - 22) * 0.25));
+}
+
 const field =
-  "min-h-11 rounded-pill border border-line bg-surface px-4 text-base font-normal text-ink hover:border-outline motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75";
+  "min-h-11 rounded-pill border border-line bg-surface px-4 text-base font-normal text-ink hover:border-outline motion-safe:transition-[border-color] motion-safe:duration-300 motion-safe:delay-75";
+const label = "flex flex-col gap-2 text-[13px] font-medium leading-[18px]";
 const td =
-  "flex gap-2 break-words before:min-w-24 before:flex-none before:text-sm before:font-semibold before:text-ink-muted before:content-[attr(data-label)] md:table-cell md:border-b md:border-line md:px-4 md:py-3 md:align-top md:before:hidden";
+  "flex gap-2 break-words before:min-w-24 before:flex-none before:text-[13px] before:font-medium before:leading-[18px] before:text-ink-muted before:content-[attr(data-label)] md:table-cell md:border-b md:border-line md:px-4 md:py-3 md:align-top md:before:hidden md:first:pl-6 md:last:pr-6";
 const th =
-  "border-b border-line bg-mist px-4 py-3 text-left text-sm font-semibold text-ink-muted";
+  "whitespace-nowrap border-b border-line bg-bg px-4 py-3 text-left text-[13px] font-medium leading-[18px] text-ink-muted first:pl-6 last:pr-6";
 
 export default async function BookingsListPage({
   searchParams,
 }: PageProps<"/admin/list">) {
   await requireAdmin();
+  await expireStaleRequests();
 
   const today = manilaNow().date;
   const sp = await searchParams;
@@ -67,7 +76,7 @@ export default async function BookingsListPage({
     .from("bookings")
     .select("*, rooms(id, name, floor)")
     .eq("kind", "booking")
-    .in("status", ["pending", "booked", "declined", "cancelled"])
+    .in("status", ["pending", "booked", "declined", "cancelled", "expired"])
     .gte("date", from)
     .lte("date", to)
     .order("date")
@@ -117,12 +126,12 @@ export default async function BookingsListPage({
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <h1>Booking List</h1>
 
-      <Form action="/admin/list" className="mt-6 flex flex-wrap items-end gap-3">
+      <Form action="/admin/list" className="flex flex-wrap items-end gap-3">
         {active !== "all" && <input type="hidden" name="status" value={active} />}
-        <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm font-semibold">
+        <label className={`${label} min-w-56 flex-1`}>
           Search
           <span className="relative flex">
             <svg
@@ -131,7 +140,7 @@ export default async function BookingsListPage({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
@@ -150,15 +159,15 @@ export default async function BookingsListPage({
             />
           </span>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
+        <label className={label}>
           From
           <DateField name="from" defaultValue={from} className={field} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
+        <label className={label}>
           To
           <DateField name="to" defaultValue={to} className={field} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-semibold">
+        <label className={label}>
           Room
           <RoomSelect
             name="room"
@@ -172,7 +181,7 @@ export default async function BookingsListPage({
         </label>
         <button
           type="submit"
-          className="min-h-11 rounded-pill bg-brand-strong px-5 font-semibold text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
+          className="min-h-11 rounded-pill bg-brand-strong px-5 text-sm font-medium text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color] motion-safe:duration-300 motion-safe:delay-75"
         >
           Filter
         </button>
@@ -180,37 +189,29 @@ export default async function BookingsListPage({
 
       <section
         aria-label="Bookings"
-        className="mt-6 overflow-hidden rounded-card-mobile border border-line bg-surface"
+        className="overflow-hidden rounded-card-mobile border border-line bg-surface"
       >
-        <nav aria-label="Booking status" className="flex flex-wrap gap-2 border-b border-line p-3 md:px-5">
-          {TABS.map((t) => {
-            const on = t.key === active;
-            return (
-              <Link
-                key={t.key}
-                href={tabHref(t.key)}
-                aria-current={on ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-pill px-4 text-sm font-semibold motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75 ${
-                  on ? "bg-navy text-navy-ink" : "bg-mist text-navy hover:bg-brand-soft"
-                }`}
-              >
-                {t.label}
-                <span className={on ? "text-navy-ink/80" : "text-ink-muted"}>
-                  {counts[t.key] ?? 0}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="border-b border-line px-4 py-3">
+          <Tabs
+            label="Booking status"
+            current={active}
+            items={TABS.map((t) => ({
+              key: t.key,
+              label: t.label,
+              href: tabHref(t.key),
+              count: counts[t.key] ?? 0,
+            }))}
+          />
+        </div>
 
         {shown.length === 0 ? (
-          <p className="p-5 text-ink-muted">No bookings match.</p>
+          <p className="p-6 text-ink-muted">No bookings match</p>
         ) : (
           <div className="md:overflow-x-auto">
             <table className="block w-full md:table md:border-collapse">
               <thead className="hidden md:table-header-group">
                 <tr>
-                  {["Booked by", "D-Group leader", "Contact", "Room", "Date & time", "Pax", "Status", "Booked"].map(
+                  {["Booked by", "D-Group leader", "Contact", "Room", "Date and time", "Pax", "Status", "Booked"].map(
                     (h) => (
                       <th key={h} scope="col" className={th}>
                         {h}
@@ -219,50 +220,51 @@ export default async function BookingsListPage({
                   )}
                 </tr>
               </thead>
-              <tbody className="block p-3 md:table-row-group md:p-0">
+              <tbody className="block p-3 md:table-row-group md:p-0 md:[&_tr:last-child_td]:border-b-0">
                 {shown.map((g) => {
-                  const pill = STATUS_PILL[g.status];
                   return (
                     <tr
                       key={g.cancel_token}
-                      className="mb-3 block rounded-card-mobile border border-line bg-surface p-4 last:mb-0 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:hover:bg-brand-soft/40 motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
+                      className="mb-3 block rounded-card-mobile border border-line bg-surface p-4 last:mb-0 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:hover:bg-bg motion-safe:transition-[background-color] motion-safe:duration-300 motion-safe:delay-75"
                     >
-                      <td data-label="Booked by" className={`${td} font-semibold`}>
+                      <td data-label="Booked by" className={`${td} font-medium`}>
                         {g.name}
                       </td>
                       <td data-label="D-Group leader" className={td}>
                         {g.dgroup_leader || "—"}
                       </td>
                       <td data-label="Contact" className={td}>
-                        <div className="flex min-w-0 flex-col text-sm">
+                        <div className="flex min-w-0 flex-col text-[13px] leading-[18px]">
                           {g.email && (
                             <a
                               href={`mailto:${g.email}`}
-                              className="text-brand-strong underline [overflow-wrap:anywhere] hover:text-navy motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
+                              style={{ fontSize: emailFontSize(g.email) }}
+                              className="text-brand-strong underline [overflow-wrap:anywhere] hover:text-navy md:whitespace-nowrap md:[overflow-wrap:normal] motion-safe:transition-[color] motion-safe:duration-300 motion-safe:delay-75"
                             >
                               {g.email}
                             </a>
                           )}
-                          {g.contact && <span className="text-ink-muted">{g.contact}</span>}
+                          {g.contact && <span className="tabular-nums text-ink-muted">{g.contact}</span>}
                         </div>
                       </td>
                       <td data-label="Room" className={td}>
-                        {g.rooms ? `${g.rooms.name} · Floor ${g.rooms.floor}` : ""}
+                        {g.rooms && (
+                          <>
+                            {g.rooms.name}
+                            <span className="text-ink-muted"> · Floor {g.rooms.floor}</span>
+                          </>
+                        )}
                       </td>
-                      <td data-label="Date & time" className={td}>
+                      <td data-label="Date and time" className={`${td} tabular-nums`}>
                         {formatDate(g.date)} · {formatRange(g.hours)}
                       </td>
-                      <td data-label="Pax" className={td}>
+                      <td data-label="Pax" className={`${td} tabular-nums`}>
                         {g.expected_pax ?? "—"}
                       </td>
                       <td data-label="Status" className={td}>
-                        <span
-                          className={`inline-flex h-fit items-center rounded-pill px-3 py-1 text-sm font-semibold ${pill.className}`}
-                        >
-                          {pill.label}
-                        </span>
+                        <Status kind={STATUS_KIND[g.status]} />
                       </td>
-                      <td data-label="Booked" className={`${td} text-sm text-ink-muted`}>
+                      <td data-label="Booked" className={`${td} text-[13px] leading-[18px] tabular-nums text-ink-muted`}>
                         {formatSubmitted(g.created_at)}
                       </td>
                     </tr>
@@ -273,7 +275,7 @@ export default async function BookingsListPage({
           </div>
         )}
 
-        <div className="border-t border-line px-5 py-3 text-sm text-ink-muted">
+        <div className="border-t border-line px-6 py-3 text-[13px] leading-[18px] text-ink-muted">
           {truncated && (
             <p role="status" className="mb-1 font-semibold text-warning">
               Showing the first {groups.length} bookings. Narrow the filters to see the rest.
@@ -281,7 +283,7 @@ export default async function BookingsListPage({
           )}
           <p>
             Showing {shown.length} of {groups.length} bookings from {formatDate(from)} to{" "}
-            {formatDate(to)}.
+            {formatDate(to)}
           </p>
         </div>
       </section>

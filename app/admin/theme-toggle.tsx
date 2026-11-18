@@ -21,7 +21,7 @@ export default function ThemeToggle({ initial }: { initial: "light" | "dark" }) 
       role="switch"
       aria-checked={dark}
       onClick={toggle}
-      className="flex min-h-11 w-full items-center gap-3 rounded-slot px-3 text-left text-sm font-medium text-sidebar-ink/75 hover:bg-sidebar-ink/10 motion-safe:transition-colors motion-safe:duration-150"
+      className="flex min-h-11 w-full items-center gap-3 rounded-slot px-3 text-left text-sm font-medium text-sidebar-ink/72 hover:bg-sidebar-ink/8 hover:text-sidebar-ink motion-safe:transition-[color,background-color] motion-safe:duration-300 motion-safe:delay-75"
     >
       <svg
         width="18"
@@ -29,7 +29,7 @@ export default function ThemeToggle({ initial }: { initial: "light" | "dark" }) 
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"

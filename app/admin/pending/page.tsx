@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { loadPendingRequests, type PendingGroup } from "@/lib/admin";
 import { formatDate, formatRange, formatSubmitted } from "@/lib/rules";
 import { db, requireAdmin } from "@/lib/supabase";
 import { approveRequest, declineRequest } from "../actions";
+import { Ribbon, Tabs } from "../parts";
 import { DeclineButton } from "./decline-button";
 
 type Notice =
@@ -120,7 +120,7 @@ function Decisions({ g, filter }: { g: PendingGroup; filter: Filter }) {
       <form action={approveRequest.bind(null, g.cancel_token, filter)}>
         <button
           type="submit"
-          className="min-h-11 rounded-pill bg-brand-strong px-3.5 text-sm font-semibold text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
+          className="min-h-11 rounded-pill bg-brand-strong px-4 text-sm font-medium text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color] motion-safe:duration-300 motion-safe:delay-75"
         >
           Approve
         </button>
@@ -148,7 +148,7 @@ function DeclinedCard({
     <section
       role={notice.sent ? "status" : "alert"}
       aria-labelledby="declined-heading"
-      className={`mx-auto flex w-full max-w-[32rem] flex-col items-center gap-3 rounded-card-mobile border bg-surface px-5 py-6 text-center md:rounded-card ${
+      className={`mx-auto flex w-full max-w-[32rem] flex-col items-center gap-3 rounded-card-mobile border bg-surface px-5 py-6 text-center ${
         notice.sent ? "border-line" : "border-warning"
       }`}
     >
@@ -191,7 +191,7 @@ function DeclinedCard({
           </p>
           <p className="text-ink-muted">
             The hours are free again. Please let them know yourself:{" "}
-            <a href={`mailto:${notice.email}`} className="font-semibold text-brand-strong underline">
+            <a href={`mailto:${notice.email}`} className="font-medium text-brand-strong underline">
               {notice.email}
             </a>
             , <span className="font-semibold text-ink">{notice.contact}</span>.
@@ -230,131 +230,111 @@ function Row({
     .join(" · ");
   return (
     <li
-      className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-l-4 border-t border-t-line px-4 py-2.5 first:border-t-0 ${
-        selected ? "border-l-brand-strong bg-brand-soft" : "border-l-transparent hover:bg-bg"
-      } motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75`}
+      className={`flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-5 py-3 first:border-t-0 ${
+        selected
+          ? "bg-brand-soft shadow-[inset_3px_0_0_var(--color-brand-strong)]"
+          : "hover:bg-bg"
+      } motion-safe:transition-[background-color] motion-safe:duration-300 motion-safe:delay-75`}
     >
       <Link
         href={`${pageHref(filter, g.cancel_token)}#detail`}
         aria-current={selected ? "true" : undefined}
-        className="flex min-h-11 min-w-0 flex-[1_1_16rem] items-center gap-2.5"
+        className="flex min-h-11 min-w-0 flex-[1_1_16rem] items-center gap-3"
       >
         <span
           aria-hidden="true"
-          className="grid size-9 flex-none place-items-center rounded-pill bg-brand-tint text-xs font-semibold text-navy"
+          className="grid size-9 flex-none place-items-center rounded-pill bg-brand-soft text-xs font-semibold text-navy"
         >
           {initials(who)}
         </span>
-        <span className="flex min-w-0 flex-col">
-          <span className="font-semibold leading-5 [overflow-wrap:anywhere]">{who}</span>
-          <span className="text-sm text-ink-muted [overflow-wrap:anywhere]">{line}</span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-medium [overflow-wrap:anywhere]">{who}</span>
+          <span className="text-[13px] leading-[18px] text-ink-muted [overflow-wrap:anywhere]">
+            {line}
+          </span>
         </span>
       </Link>
-      <div className="flex flex-none flex-wrap items-center gap-x-3 gap-y-2">
-        <span
-          className={`text-xs ${overdue ? "font-semibold text-warning" : "text-ink-muted"}`}
-        >
-          <span className="sr-only">Submitted </span>
-          {ageLabel(ageMs)}
-        </span>
-        <Decisions g={g} filter={filter} />
-      </div>
+      <Ribbon hours={g.hours} pending />
+      <span
+        className={`min-w-20 text-right text-[13px] leading-[18px] tabular-nums ${overdue ? "font-medium text-warning" : "text-ink-muted"}`}
+      >
+        <span className="sr-only">Submitted </span>
+        {ageLabel(ageMs)}
+      </span>
+      <Decisions g={g} filter={filter} />
     </li>
   );
 }
 
-function Line({ children }: { children: ReactNode }) {
-  return <li className="flex items-start gap-2.5 text-ink [overflow-wrap:anywhere]">{children}</li>;
-}
-
-function Icon({ paths }: { paths: string[] }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="mt-1 flex-none text-ink-muted"
-    >
-      {paths.map((d) => (
-        <path key={d} d={d} />
-      ))}
-    </svg>
-  );
-}
-
-function Detail({ g, filter }: { g: PendingGroup; filter: Filter }) {
-  const who = g.name;
-  const cells: [string, string][] = [
-    ["Room", g.rooms ? `${g.rooms.name} · Floor ${g.rooms.floor}` : "—"],
-    ["Date", formatDate(g.date)],
-    ["Time", formatRange(g.hours)],
-    ["Attendees", g.expected_pax === null ? "—" : String(g.expected_pax)],
-    ["D-Group leader", g.dgroup_leader || "—"],
-  ];
+function Detail({ g, filter, nowMs }: { g: PendingGroup; filter: Filter; nowMs: number }) {
+  const ageMs = nowMs - new Date(g.created_at).getTime();
+  const overdue = ageMs >= DAY_MS;
   return (
     <aside
       id="detail"
       aria-label="Request details"
-      className="scroll-mt-6 overflow-hidden rounded-card-mobile border border-line bg-surface md:rounded-card lg:sticky lg:top-6"
+      className="scroll-mt-6 overflow-hidden rounded-card-mobile border border-line bg-surface lg:sticky lg:top-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-navy px-4 py-3 text-navy-ink">
-        <span className="text-sm font-semibold">Request {g.cancel_token.slice(0, 8).toUpperCase()}</span>
-        <span className="text-xs text-navy-ink/75">Submitted {formatSubmitted(g.created_at)}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line px-6 py-4 text-[13px] leading-[18px] text-ink-muted">
+        <span>Submitted {formatSubmitted(g.created_at)}</span>
+        <span className={overdue ? "font-medium text-warning" : undefined}>{ageLabel(ageMs)}</span>
       </div>
-      <div className="flex flex-col gap-4 p-4">
-        <div className="flex flex-col gap-2.5 text-sm">
-          <h2 className="text-lg font-semibold leading-6 [overflow-wrap:anywhere]">{who}</h2>
-          <ul className="flex flex-col gap-2">
-            <Line>
-              <Icon paths={["M4 4h16v16H4z", "M4 6l8 7 8-7"]} />
-              <span>
-                <span className="sr-only">Email: </span>
-                {g.email ? (
-                  <a href={`mailto:${g.email}`} className="text-brand-strong underline hover:text-navy motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75">
-                    {g.email}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </span>
-            </Line>
-            <Line>
-              <Icon
-                paths={[
-                  "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z",
-                ]}
-              />
-              <span>
-                <span className="sr-only">Contact: </span>
-                {g.contact || "—"}
-              </span>
-            </Line>
-          </ul>
+      <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl leading-7 [overflow-wrap:anywhere]">{g.name}</h2>
+          <span className="text-[13px] leading-[18px] [overflow-wrap:anywhere]">
+            <span className="sr-only">Email: </span>
+            {g.email ? (
+              <a
+                href={`mailto:${g.email}`}
+                className="text-brand-strong underline hover:text-navy motion-safe:transition-[color] motion-safe:duration-300 motion-safe:delay-75"
+              >
+                {g.email}
+              </a>
+            ) : (
+              "—"
+            )}
+          </span>
+          <span className="text-[13px] leading-[18px] tabular-nums">
+            <span className="sr-only">Contact: </span>
+            {g.contact || "—"}
+          </span>
         </div>
-        <dl className="grid grid-cols-2 gap-3 rounded-slot bg-mist p-3.5 text-sm">
-          {cells.map(([label, value]) => (
-            <div
-              key={label}
-              className={`flex min-w-0 flex-col gap-0.5 ${label === "D-Group leader" ? "col-span-2" : ""}`}
-            >
-              <dt className="text-xs text-ink-muted">{label}</dt>
-              <dd className="font-semibold [overflow-wrap:anywhere]">{value}</dd>
-            </div>
-          ))}
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-3">
+            <span className="font-medium">
+              {g.rooms ? `${g.rooms.name} · Floor ${g.rooms.floor}` : "—"}
+            </span>
+            <span className="tabular-nums">{formatRange(g.hours)}</span>
+          </div>
+          <Ribbon hours={g.hours} pending large />
+        </div>
+
+        <dl className="grid grid-cols-2 gap-4">
+          <div>
+            <dt className="text-[13px] leading-[18px] text-ink-muted">Date</dt>
+            <dd className="mt-0.5 font-medium">{formatDate(g.date)}</dd>
+          </div>
+          <div>
+            <dt className="text-[13px] leading-[18px] text-ink-muted">Attendees</dt>
+            <dd className="mt-0.5 font-medium tabular-nums">
+              {g.expected_pax === null ? "—" : g.expected_pax}
+            </dd>
+          </div>
+          <div className="col-span-2 min-w-0">
+            <dt className="text-[13px] leading-[18px] text-ink-muted">D-Group leader</dt>
+            <dd className="mt-0.5 font-medium [overflow-wrap:anywhere]">{g.dgroup_leader || "—"}</dd>
+          </div>
         </dl>
-        <div className="flex flex-col gap-1.5">
-          <h3 className="text-xs font-normal text-ink-muted">Notes</h3>
-          <p className="whitespace-pre-wrap text-sm leading-6 [overflow-wrap:anywhere]">
-            {g.notes || "—"}
-          </p>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-normal leading-[18px] text-ink-muted">Notes</h3>
+          <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{g.notes || "—"}</p>
         </div>
-        <Decisions g={g} filter={filter} />
+        <div className="pt-1">
+          <Decisions g={g} filter={filter} />
+        </div>
       </div>
     </aside>
   );
@@ -377,13 +357,13 @@ export default async function PendingPage({ searchParams }: PageProps<"/admin/pe
   const selected = visible.find((g) => g.cancel_token === id) ?? visible[0];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
         <h1>Pending Requests</h1>
-        <p className="text-ink-muted">
+        <p className="text-[15px] leading-[22px] text-ink-muted">
           {pending.length === 1
-            ? "1 booking is waiting for approval."
-            : `${pending.length} bookings are waiting for approval.`}
+            ? "1 booking waiting for approval"
+            : `${pending.length} bookings waiting for approval`}
         </p>
       </div>
 
@@ -399,37 +379,31 @@ export default async function PendingPage({ searchParams }: PageProps<"/admin/pe
         </p>
       )}
 
-      <nav aria-label="Filter requests" className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const active = f.value === filter;
-          return (
-            <Link
-              key={f.value}
-              href={pageHref(f.value)}
-              aria-current={active ? "true" : undefined}
-              className={`inline-flex min-h-11 items-center rounded-pill border px-4 text-sm motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75 ${
-                active
-                  ? "border-navy bg-navy font-semibold text-navy-ink"
-                  : "border-line bg-surface text-ink hover:border-brand hover:bg-brand-soft"
-              }`}
-            >
-              {f.label} · {counts[f.value]}
-            </Link>
-          );
-        })}
-      </nav>
+      <div>
+        <Tabs
+          label="Filter requests"
+          ariaCurrent="true"
+          current={filter}
+          items={FILTERS.map((f) => ({
+            key: f.value,
+            label: f.label,
+            href: pageHref(f.value),
+            count: counts[f.value],
+          }))}
+        />
+      </div>
 
       {!selected ? (
         <p className="text-ink-muted">
           {pending.length === 0
-            ? "No pending requests."
-            : "No pending requests match this filter."}
+            ? "No pending requests"
+            : "No pending requests match this filter"}
         </p>
       ) : (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <ul
             aria-label="Pending requests"
-            className="overflow-hidden rounded-card-mobile border border-line bg-surface md:rounded-card"
+            className="overflow-hidden rounded-card-mobile border border-line bg-surface"
           >
             {visible.map((g) => (
               <Row
@@ -441,7 +415,7 @@ export default async function PendingPage({ searchParams }: PageProps<"/admin/pe
               />
             ))}
           </ul>
-          <Detail g={selected} filter={filter} />
+          <Detail g={selected} filter={filter} nowMs={nowMs} />
         </div>
       )}
     </div>
