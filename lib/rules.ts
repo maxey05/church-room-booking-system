@@ -152,15 +152,36 @@ export type FieldErrors = {
   consent?: string;
 };
 
+export const MAX_BOOKABLE_FLOOR = 2;
+export const MAX_NAME = 80;
+export const MAX_EMAIL = 254;
+export const MAX_CONTACT = 20;
+export const MAX_LEADER = 80;
+export const MAX_NOTES = 500;
+
+const NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} '’,-]*(?:\.(?= |$)[\p{L}\p{M} '’,-]*)*$/u;
+const EMAIL_PATTERN =
+  /^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\.]+(?:\.[^\s@<>(),;:"\\.]+)+$/;
+
 export function validateFields(
   b: Pick<BookingInput, "name" | "email" | "contact" | "expectedPax" | "consent">,
 ): FieldErrors {
   const errors: FieldErrors = {};
-  if (!b.name.trim()) errors.name = "Please enter your name.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
+  const name = b.name.trim();
+  if (!name) {
+    errors.name = "Please enter your name.";
+  } else if (name.length > MAX_NAME) {
+    errors.name = `Please use ${MAX_NAME} characters or fewer.`;
+  } else if (!NAME_PATTERN.test(name)) {
+    errors.name = "Please use letters only (spaces, apostrophes and hyphens are fine).";
+  }
+  if (b.email.length > MAX_EMAIL || !EMAIL_PATTERN.test(b.email)) {
     errors.email = "Please enter a valid email address.";
   }
-  if (!/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))) {
+  if (
+    b.contact.length > MAX_CONTACT ||
+    !/^(09|\+639)\d{9}$/.test(b.contact.replace(/[\s-]/g, ""))
+  ) {
     errors.contact = "Please enter a valid PH mobile number (e.g. 0917 123 4567).";
   }
   const pax = b.expectedPax.trim();
@@ -177,9 +198,14 @@ export function validateBooking(b: BookingInput, now: Date = new Date()): string
   const fields = validateFields(b);
   const firstField = fields.name ?? fields.email ?? fields.contact ?? fields.expectedPax ?? fields.consent;
   if (firstField) return firstField;
+  if (b.dgroupLeader.length > MAX_LEADER) {
+    return `The D-Group leader name must be ${MAX_LEADER} characters or fewer.`;
+  }
   if (!isRealDate(b.date)) return "Please pick a date.";
   if (b.hours.length === 0) return "Please pick at least one time slot.";
-  if (b.hours.some((h) => !HOURS.includes(h))) return "Invalid time slot.";
+  if (b.hours.length > HOURS.length || b.hours.some((h) => !HOURS.includes(h))) {
+    return "Invalid time slot.";
+  }
   const sorted = [...b.hours].sort((a, c) => a - c);
   if (sorted.some((h, i) => i > 0 && h !== sorted[i - 1] + 1)) {
     return "Please pick time slots that are next to each other.";
