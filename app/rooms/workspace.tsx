@@ -13,7 +13,12 @@ import {
   formatHour24,
   formatRange24,
   HOURS,
+  MAX_CONTACT,
   MAX_DAYS_AHEAD,
+  MAX_EMAIL,
+  MAX_LEADER,
+  MAX_NAME,
+  MAX_NOTES,
   validateFields,
   type FieldErrors,
 } from "@/lib/rules";
@@ -137,7 +142,7 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-const fieldClass = `w-full rounded-md border border-outline-soft bg-brand-soft px-3 text-base text-ink placeholder:text-ink-muted hover:border-outline hover:bg-brand-tint focus:border-brand-strong focus:bg-surface focus:ring-3 focus:ring-brand/20 focus:outline-none aria-invalid:border-danger aria-invalid:inset-ring-[1.5px] aria-invalid:inset-ring-danger scroll-my-28 lg:text-sm ${motion}`;
+const fieldClass = `w-full rounded-md border border-outline-soft bg-brand-soft px-3 text-base text-ink placeholder:text-ink-muted hover:border-outline hover:bg-brand-tint focus:border-brand-strong focus:bg-surface focus:ring-3 focus:ring-brand/20 focus:outline-none aria-invalid:border-danger-soft aria-invalid:inset-ring-[1.5px] aria-invalid:inset-ring-danger-soft scroll-my-28 lg:text-sm ${motion}`;
 
 function TextField({
   name,
@@ -158,6 +163,7 @@ function TextField({
   required?: boolean;
   min?: number;
   max?: number;
+  maxLength?: number;
 }) {
   const id = `field-${name}`;
   return (
@@ -624,7 +630,7 @@ export default function Workspace({
               </div>
             ) : (
               <>
-                <div className="rise-desk flex min-w-0 flex-col gap-3 lg:sticky lg:top-[min(5rem,calc(100dvh_-_37rem))] lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-start">
+                <div className="rise-desk flex min-w-0 flex-col gap-3 max-lg:relative max-lg:z-20 lg:sticky lg:top-[min(5rem,calc(100dvh_-_37rem))] lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-start">
                   <section
                     ref={dateSection}
                     aria-labelledby="section-date"
@@ -791,6 +797,7 @@ export default function Workspace({
                         label="Name"
                         hint="required"
                         autoComplete="name"
+                        maxLength={MAX_NAME}
                         required
                         defaultValue={state.values?.name}
                         invalid={!!errors.name}
@@ -801,6 +808,7 @@ export default function Workspace({
                         hint="required"
                         type="email"
                         autoComplete="email"
+                        maxLength={MAX_EMAIL}
                         required
                         defaultValue={state.values?.email}
                         invalid={!!errors.email}
@@ -813,6 +821,7 @@ export default function Workspace({
                         inputMode="tel"
                         autoComplete="tel"
                         placeholder="0917 123 4567"
+                        maxLength={MAX_CONTACT}
                         required
                         defaultValue={state.values?.contact}
                         invalid={!!errors.contact}
@@ -836,6 +845,7 @@ export default function Workspace({
                         label="D-Group leader"
                         hint="optional"
                         autoComplete="off"
+                        maxLength={MAX_LEADER}
                         defaultValue={state.values?.dgroupLeader}
                       />
                       <div className="flex flex-col gap-1">
@@ -846,7 +856,7 @@ export default function Workspace({
                           id="field-notes"
                           name="notes"
                           rows={3}
-                          maxLength={500}
+                          maxLength={MAX_NOTES}
                           placeholder="Enter anything you want the staff to know..."
                           defaultValue={state.values?.notes}
                           className={`resize-y py-2 ${fieldClass}`}
@@ -854,7 +864,7 @@ export default function Workspace({
                       </div>
                       <label
                         className={`flex cursor-pointer items-start gap-2.5 rounded-md bg-brand-soft p-2.5 text-[13px] leading-[1.45] text-ink hover:bg-brand-tint ${motion} ${
-                          errors.consent ? "inset-ring-[1.5px] inset-ring-danger" : ""
+                          errors.consent ? "inset-ring-[1.5px] inset-ring-danger-soft" : ""
                         }`}
                       >
                         <input
