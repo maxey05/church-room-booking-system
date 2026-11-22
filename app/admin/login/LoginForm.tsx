@@ -41,6 +41,7 @@ export default function LoginForm() {
           <input
             name="email"
             type="email"
+            maxLength={254}
             required
             autoComplete="username"
             placeholder="example@email.com"
@@ -53,6 +54,7 @@ export default function LoginForm() {
           <input
             name="password"
             type="password"
+            maxLength={128}
             required
             autoComplete="current-password"
             placeholder="******"
