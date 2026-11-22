@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { authClient, isAdminEmail } from "@/lib/supabase";
+import { MAX_EMAIL } from "@/lib/rules";
+import { allow, authClient, isAdminEmail } from "@/lib/supabase";
+
+const MAX_PASSWORD = 128;
 
 export type LoginState = { error?: string; email?: string };
 
@@ -13,6 +16,12 @@ export async function signIn(
   const password = String(form.get("password") ?? "");
   if (!email || !password) {
     return { error: "Please enter your email and password.", email };
+  }
+  if (email.length > MAX_EMAIL || password.length > MAX_PASSWORD) {
+    return { error: "Incorrect email or password.", email: email.slice(0, MAX_EMAIL) };
+  }
+  if (!(await allow("login", 10, 900))) {
+    return { error: "Too many login attempts. Please wait 15 minutes and try again.", email };
   }
 
   const supabase = await authClient();
