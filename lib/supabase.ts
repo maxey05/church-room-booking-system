@@ -1,6 +1,7 @@
+import "server-only";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type Room = {
@@ -68,11 +69,35 @@ export function db(): SupabaseClient {
   );
 }
 
+export async function allow(
+  bucket: string,
+  max: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "unknown")
+    .trim()
+    .slice(0, 64);
+  const { data, error } = await db().rpc("hit_rate_limit", {
+    p_key: `${bucket}:${ip}`,
+    p_max: max,
+    p_window_seconds: windowSeconds,
+  });
+  if (error) {
+    console.error("Rate limit check failed", error.message);
+    return true;
+  }
+  return data === true;
+}
+
+export const AUTH_COOKIE_OPTIONS = { httpOnly: true };
+
 export async function authClient(): Promise<SupabaseClient> {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const cookieStore = await cookies();
   return createServerClient(url, anonKey, {
+    cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return cookieStore.getAll();
