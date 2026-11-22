@@ -52,15 +52,50 @@ create table email_log (
 );
 create index email_log_created_at on email_log (created_at desc);
 
+-- Per-IP rate limiter (D-074). One row per (key, window).
+create table rate_limits (
+  key text not null,
+  bucket timestamptz not null,
+  hits int not null,
+  primary key (key, bucket)
+);
+
+create or replace function hit_rate_limit(p_key text, p_max int, p_window_seconds int)
+returns boolean
+language plpgsql
+as $$
+declare
+  v_bucket timestamptz := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+  v_hits int;
+begin
+  insert into rate_limits as r (key, bucket, hits)
+  values (p_key, v_bucket, 1)
+  on conflict (key, bucket) do update set hits = r.hits + 1
+  returning r.hits into v_hits;
+
+  -- About 1 call in 100 also clears windows older than 2 days, so the table stays small.
+  if random() < 0.01 then
+    delete from rate_limits where bucket < now() - interval '2 days';
+  end if;
+
+  return v_hits <= p_max;
+end;
+$$;
+
 -- RLS on with no policies: the anon key can read and write nothing.
 -- The app uses the service-role key on the server, which bypasses RLS.
 alter table rooms    enable row level security;
 alter table bookings enable row level security;
 alter table settings enable row level security;
 alter table email_log enable row level security;
+alter table rate_limits enable row level security;
 
 -- Newer Supabase projects do not grant new tables to the API roles automatically.
 -- service_role bypasses RLS but still needs table and sequence privileges.
 -- Nothing is granted to anon or authenticated on purpose.
-grant all on table rooms, bookings, settings, email_log to service_role;
+grant all on table rooms, bookings, settings, email_log, rate_limits to service_role;
 grant usage, select on sequence rooms_id_seq, bookings_id_seq, email_log_id_seq to service_role;
+
+-- Only the server may call the limiter; the public API roles may not.
+revoke execute on function hit_rate_limit(text, int, int) from public, anon, authenticated;
+grant execute on function hit_rate_limit(text, int, int) to service_role;
