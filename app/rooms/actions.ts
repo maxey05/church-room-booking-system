@@ -6,11 +6,13 @@ import {
   formatRange24,
   limitReached,
   manilaNow,
+  MAX_BOOKABLE_FLOOR,
+  MAX_NOTES,
   normalizeContact,
   resolveDate,
   validateBooking,
 } from "@/lib/rules";
-import { db } from "@/lib/supabase";
+import { allow, db } from "@/lib/supabase";
 
 export type BookState = {
   error?: string;
@@ -38,8 +40,6 @@ export type TakenResult =
 const TAKEN =
   "Sorry, one of those slots was just taken. We've refreshed the times, so please pick another.";
 
-const MAX_NOTES = 500;
-
 const longDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
   weekday: "long",
@@ -64,6 +64,10 @@ export async function book(
   const date = text("date");
   const hours = form.getAll("hours").map(Number);
 
+  if (!(await allow("book", 20, 3600))) {
+    return { error: "Too many requests from your network. Please try again in a while.", values };
+  }
+
   const invalid = validateBooking({
     ...values,
     consent: form.get("consent") === "on",
@@ -77,6 +81,7 @@ export async function book(
     .select("id, name, floor")
     .eq("id", roomId)
     .eq("active", true)
+    .lte("floor", MAX_BOOKABLE_FLOOR)
     .maybeSingle();
   if (roomError) throw new Error(roomError.message);
   if (!room) return { error: "This room is not available.", values };
