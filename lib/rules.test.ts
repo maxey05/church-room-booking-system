@@ -207,6 +207,62 @@ assert.equal(
   "Please enter your name.",
 );
 
+const nameMessage = "Please use letters only (spaces, apostrophes and hyphens are fine).";
+for (const ok of ["Ana", "Ma. Cristina Dela Cruz", "J. R. Smith", "O'Brien-Reyes", "Zoë Müller", "José Rizal Jr."]) {
+  assert.equal(check({ name: ok }), null, ok);
+}
+for (const bad of [
+  "Visit evil.com now",
+  "Win at http://evil.com",
+  "Call 0917 123 4567",
+  "Ana\nClaim your prize",
+  "Ana <b>",
+  "J.R. Smith",
+  "😀",
+  "1Ana",
+]) {
+  assert.equal(check({ name: bad }), nameMessage, bad);
+}
+assert.equal(check({ name: "A".repeat(80) }), null);
+assert.equal(check({ name: "A".repeat(81) }), "Please use 80 characters or fewer.");
+
+for (const bad of ["a@b", "a@.b.c", "a@b..c", "a b@c.com", "a@b@c.com", "a,b@c.com", "a<b@c.com>", "a@b.com,c@d.com"]) {
+  assert.equal(check({ email: bad }), "Please enter a valid email address.", bad);
+}
+assert.equal(check({ email: "ana.reyes+dgroup@sub.example.com" }), null);
+assert.equal(check({ email: `${"a".repeat(64)}@${"b".repeat(60)}.com` }), null);
+assert.equal(
+  check({ email: `${"a".repeat(250)}@b.com` }),
+  "Please enter a valid email address.",
+);
+
+assert.equal(
+  check({ contact: `0917${" ".repeat(30)}1234567` }),
+  "Please enter a valid PH mobile number (e.g. 0917 123 4567).",
+);
+assert.equal(check({ dgroupLeader: "L".repeat(80) }), null);
+assert.equal(
+  check({ dgroupLeader: "L".repeat(81) }),
+  "The D-Group leader name must be 80 characters or fewer.",
+);
+assert.equal(check({ hours: Array(1000).fill(9) }), "Invalid time slot.");
+
+const slowStart = Date.now();
+for (const email of [
+  `a@${".".repeat(500_000)}@`,
+  `${"a.".repeat(250_000)}@`,
+  `a@${"b.".repeat(250_000)}`,
+]) {
+  assert.equal(check({ email }), "Please enter a valid email address.");
+}
+assert.ok(Date.now() - slowStart < 500, "hostile email input must be rejected quickly");
+
+const slowName = Date.now();
+for (const name of [`${"a".repeat(500_000)}1`, `A${". ".repeat(250_000)}1`, "A.".repeat(250_000)]) {
+  assert.equal(check({ name })?.startsWith("Please use"), true);
+}
+assert.ok(Date.now() - slowName < 500, "hostile name input must be rejected quickly");
+
 const blockBase = { date: "2026-11-14", from: 7, to: 12, label: "Sunday Service" };
 const block = (patch: Partial<typeof blockBase>) => validateBlock({ ...blockBase, ...patch });
 const hoursMessage = "Pick hours between 7:00 AM and 10:00 PM.";
