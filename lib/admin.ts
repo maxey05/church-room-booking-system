@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { expireStalePending } from "@/lib/bookings";
 import { groupByToken, hasStarted, manilaNow } from "@/lib/rules";
 import { db, type Booking } from "@/lib/supabase";
@@ -15,10 +16,10 @@ export async function expireStaleRequests(): Promise<void> {
   }
 }
 
-export async function loadPendingRequests(): Promise<{
+export const loadPendingRequests = cache(async (): Promise<{
   pending: PendingGroup[];
   capped: boolean;
-}> {
+}> => {
   await expireStaleRequests();
   const today = manilaNow().date;
   const { data, error } = await db()
@@ -40,7 +41,7 @@ export async function loadPendingRequests(): Promise<{
     .filter((g) => !hasStarted(g.date, g.hours[0]))
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
   return { pending, capped };
-}
+});
 
 export function isMissingEmailLog(error: { code?: string; message: string }): boolean {
   return (

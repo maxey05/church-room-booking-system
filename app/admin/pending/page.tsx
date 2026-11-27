@@ -4,6 +4,7 @@ import { formatDate, formatRange, formatSubmitted } from "@/lib/rules";
 import { db, requireAdmin } from "@/lib/supabase";
 import { approveRequest, declineRequest } from "../actions";
 import { Ribbon, Tabs } from "../parts";
+import { ApproveButton } from "./approve-button";
 import { DeclineButton } from "./decline-button";
 
 type Notice =
@@ -118,12 +119,7 @@ function Decisions({ g, filter }: { g: PendingGroup; filter: Filter }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <form action={approveRequest.bind(null, g.cancel_token, filter)}>
-        <button
-          type="submit"
-          className="min-h-11 rounded-pill bg-brand-strong px-4 text-sm font-medium text-surface hover:bg-navy motion-safe:transition-[color,background-color,border-color] motion-safe:duration-300 motion-safe:delay-75"
-        >
-          Approve
-        </button>
+        <ApproveButton />
       </form>
       <DeclineButton
         key={g.cancel_token}

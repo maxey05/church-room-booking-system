@@ -9,6 +9,7 @@ import {
   OPEN_HOUR,
   WEEKDAY_SHORT,
   emailFailureReason,
+  normalizeSiteUrl,
   searchPattern,
   addDays,
   byFloorThenName,
@@ -456,5 +457,24 @@ assert.equal(
 );
 assert.equal(emailFailureReason(new Error("boom")), "The email could not be sent.");
 assert.equal(emailFailureReason(undefined), "The email could not be sent.");
+
+assert.equal(normalizeSiteUrl("https://ccf-room-booking.vercel.app"), "https://ccf-room-booking.vercel.app");
+assert.equal(normalizeSiteUrl("https://ccf-room-booking.vercel.app/"), "https://ccf-room-booking.vercel.app");
+assert.equal(normalizeSiteUrl("  https://ccf-room-booking.vercel.app//  "), "https://ccf-room-booking.vercel.app");
+assert.equal(normalizeSiteUrl("ccf-room-booking.vercel.app"), "https://ccf-room-booking.vercel.app");
+assert.equal(normalizeSiteUrl("http://localhost:3000"), "http://localhost:3000");
+assert.equal(
+  normalizeSiteUrl("http://localhost:3000", "ccf-room-booking.vercel.app"),
+  "https://ccf-room-booking.vercel.app",
+);
+assert.equal(
+  normalizeSiteUrl("http://192.168.68.57:3000", "ccf-room-booking.vercel.app"),
+  "https://ccf-room-booking.vercel.app",
+);
+assert.equal(normalizeSiteUrl("", "ccf-room-booking.vercel.app"), "https://ccf-room-booking.vercel.app");
+assert.equal(
+  normalizeSiteUrl("https://church.example.org", "ccf-room-booking.vercel.app"),
+  "https://church.example.org",
+);
 
 console.log("lib/rules.test.ts: all checks passed");

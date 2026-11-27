@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import type { DecidedBooking } from "@/lib/bookings";
-import { emailFailureReason, formatDate, formatRange } from "@/lib/rules";
+import { emailFailureReason, formatDate, formatRange, normalizeSiteUrl } from "@/lib/rules";
 import { db, requireEnv, type EmailKind, type EmailLogRow } from "@/lib/supabase";
 
 export type EmailBooking = {
@@ -23,6 +23,7 @@ async function send(to: string, subject: string, lines: string[]): Promise<void>
     service: "gmail",
     auth: { user, pass: requireEnv("GMAIL_APP_PASSWORD") },
     connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
     socketTimeout: 10_000,
   });
   await transport.sendMail({
@@ -97,10 +98,14 @@ export function composeEmail(
   };
 }
 
+function siteUrl(): string {
+  return normalizeSiteUrl(requireEnv("SITE_URL"), process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "");
+}
+
 function liveLink(kind: EmailKind, token: string | null): string {
-  if (kind !== "approval") return `${requireEnv("SITE_URL")}/rooms`;
+  if (kind !== "approval") return `${siteUrl()}/rooms`;
   if (!token) throw new Error("This approval email has no cancel link to rebuild.");
-  return `${requireEnv("SITE_URL")}/cancel/${token}`;
+  return `${siteUrl()}/cancel/${token}`;
 }
 
 export function previewLink(kind: EmailKind): string {

@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 export type Room = {
@@ -124,11 +125,11 @@ export function isAdminEmail(email: string | undefined): boolean {
   return allowed.includes(email.toLowerCase());
 }
 
-export async function getAdmin(): Promise<User | null> {
+export const getAdmin = cache(async (): Promise<User | null> => {
   const { data, error } = await (await authClient()).auth.getUser();
   if (error || !data.user || !isAdminEmail(data.user.email)) return null;
   return data.user;
-}
+});
 
 export async function requireAdmin(): Promise<User> {
   const user = await getAdmin();

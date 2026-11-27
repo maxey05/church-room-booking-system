@@ -428,3 +428,18 @@ export function emailFailureReason(error: unknown): string {
   }
   return "The email could not be sent.";
 }
+
+export function normalizeSiteUrl(raw: string, vercelHost: string = ""): string {
+  let url = raw.trim().replace(/\/+$/, "");
+  if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
+  const host = url.replace(/^https?:\/\//i, "").split(/[/:?#]/)[0].toLowerCase();
+  const local =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "[::1]" ||
+    /^192\.168\./.test(host) ||
+    /^10\./.test(host);
+  const fallback = vercelHost.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  if ((!url || local) && fallback) return `https://${fallback}`;
+  return url;
+}
