@@ -65,15 +65,12 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
           >
             <Image
               src="/ccf-icon.png"
-              alt=""
+              alt="CCF Alabang Room Booking"
               width={512}
               height={512}
               priority
               className="size-9 flex-none rounded-[10px]"
             />
-            <span className="truncate text-sm font-semibold text-navy md:text-[15px]">
-              CCF Alabang Room Booking
-            </span>
           </Link>
           <nav aria-label="Main" className="rise [animation-delay:80ms]">
             <Link
