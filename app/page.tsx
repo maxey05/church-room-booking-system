@@ -111,7 +111,7 @@ export default function Home() {
             id="how-title"
             className="text-4xl leading-tight font-medium tracking-[-0.03em] md:text-[52px]"
           >
-            Three steps. <span className="text-brand-strong">That’s it.</span>
+            Three steps. <span className="block text-brand-strong">That’s it.</span>
           </h2>
           <p className="mt-3.5 text-[17px] text-ink-muted">
             Booking a room takes under two minutes, here’s how to do it:
