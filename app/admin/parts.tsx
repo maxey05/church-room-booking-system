@@ -110,7 +110,7 @@ export function Tabs({
   return (
     <nav
       aria-label={label}
-      className="inline-flex flex-wrap gap-1 rounded-pill bg-mist p-1"
+      className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-pill bg-mist p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {items.map((t) => {
         const on = t.key === current;
@@ -119,7 +119,7 @@ export function Tabs({
             key={t.key}
             href={t.href}
             aria-current={on ? ariaCurrent : undefined}
-            className={`inline-flex min-h-11 items-center gap-2 rounded-pill px-4 text-sm font-medium motion-safe:transition-[color,background-color,box-shadow] motion-safe:duration-300 motion-safe:delay-75 ${
+            className={`inline-flex min-h-11 flex-none items-center gap-2 rounded-pill px-4 text-sm font-medium whitespace-nowrap motion-safe:transition-[color,background-color,box-shadow] motion-safe:duration-300 motion-safe:delay-75 ${
               on
                 ? "bg-surface text-navy ring-1 ring-line"
                 : "text-ink-muted hover:bg-surface/60 hover:text-navy"
