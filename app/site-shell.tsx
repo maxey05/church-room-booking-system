@@ -71,6 +71,9 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
               priority
               className="size-9 flex-none rounded-[10px]"
             />
+            <span className="hidden truncate text-[15px] font-semibold text-navy md:inline">
+              CCF Alabang Room Booking
+            </span>
           </Link>
           <nav aria-label="Main" className="rise [animation-delay:80ms]">
             <Link
