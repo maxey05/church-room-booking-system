@@ -1,7 +1,7 @@
 
 ## Deploy
 
-The site runs on Vercel Hobby (free). A daily job calls `/api/keepalive` so the free Supabase database does not pause after 7 idle days. The job is set in `vercel.json`. Vercel's free plan runs it once a day, at some point between 8:00 and 8:59 AM Manila time.
+The site runs on Vercel Hobby (free). A daily Vercel Schedule calls `/api/keepalive` so the free Supabase database does not pause after 7 idle days. The schedule is set in `vercel.json` and is named `keepalive`. It runs every day at 8:00 AM Manila time, and Vercel's free plan may start it up to about 15 minutes late. Vercel Schedules is currently in beta and replaces the older Cron Jobs feature.
 
 Follow the steps in order. Each step says what to click and why.
 
@@ -59,12 +59,15 @@ Why: Vercel hosts the site and runs the daily job.
 
 If you later change any variable, open **Deployments**, click the three dots `⋯` on the newest deployment, choose **Redeploy**. Variables do nothing until you redeploy.
 
-### 5. Check the daily job
+### 5. Check the daily schedule
 
-1. In the Vercel project click **Settings** at the top, then **Cron Jobs** in the left sidebar. `/api/keepalive` should be listed with the schedule `0 0 * * *`. If it is missing, the `vercel.json` file did not reach GitHub. Go back to step 3.
-2. In a new browser tab open `https://<your project name>.vercel.app/api/keepalive`. You should see `{"ok":true}`.
-3. If you see `{"ok":false}`, check that `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel's **Environment Variables** match Supabase exactly, then redeploy.
-4. If the Cron Jobs list has a **Run** option beside the job, click it, then open the **Logs** tab and look for `/api/keepalive` with status 200.
+Why: this proves the database stays awake, which is what the schedule is for.
+
+1. In the Vercel project click **Schedules** in the top menu. You should see a schedule named `keepalive`. If you cannot find it, check the Environment filter at the top is set to Production.
+2. If `keepalive` is missing, the `vercel.json` file did not reach GitHub or the deployment did not finish. Go back to step 3 and check the latest deployment under **Deployments** is marked Ready.
+3. Click `keepalive`, then click **Run Schedule**. Wait a few seconds and refresh. The execution history on that page should show a successful run.
+4. In a new browser tab open `https://<your project name>.vercel.app/api/keepalive`. You should see `{"ok":true}`.
+5. If you see `{"ok":false}`, check that `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel's **Environment Variables** match Supabase exactly, then redeploy.
 
 ### 6. Tell Supabase the site address
 
