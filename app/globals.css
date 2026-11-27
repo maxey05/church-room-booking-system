@@ -447,3 +447,42 @@
     animation: backdrop-in 0.18s ease-out;
   }
 }
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
+@keyframes toast-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .result-toast {
+    animation: toast-in 0.28s ease-out both;
+  }
+
+  .result-toast[data-leaving="true"] {
+    animation: toast-out 0.2s ease-in forwards;
+  }
+
+  .result-toast-bar {
+    animation-name: toast-drain;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+}

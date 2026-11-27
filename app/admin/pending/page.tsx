@@ -6,10 +6,8 @@ import { approveRequest, declineRequest } from "../actions";
 import { Ribbon, Tabs } from "../parts";
 import { ApproveButton } from "./approve-button";
 import { DeclineButton } from "./decline-button";
+import { ResultToast, type ToastNotice } from "./result-toast";
 
-type Notice =
-  | { kind: "line"; role: "status" | "alert"; className: string; text: string }
-  | { kind: "declined"; sent: boolean; name: string; email: string; contact: string };
 type Filter = "all" | "over24" | "floor1" | "floor2";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,14 +62,14 @@ function initials(text: string): string {
 
 async function loadNotice(
   sp: Record<string, string | string[] | undefined>,
-): Promise<Notice | null> {
+): Promise<ToastNotice | null> {
   const notice = sp.notice;
   if (notice === "stale") {
     return {
-      kind: "line",
-      role: "status",
-      className: "text-ink-muted",
-      text: "That request was already handled or its time has started, so nothing changed.",
+      key: "stale",
+      kind: "neutral",
+      title: "Nothing changed",
+      text: "That request was already handled or its time has started.",
     };
   }
   if (notice !== "approved" && notice !== "declined") return null;
@@ -90,28 +88,26 @@ async function loadNotice(
   if (error) throw new Error(error.message);
   if (!data) return null;
   const b = data as { name: string; email: string | null; contact: string | null };
-  if (notice === "declined") {
+  const key = `${notice}-${sent}-${token}`;
+  if (sent === "0") {
     return {
-      kind: "declined",
-      sent: sent === "1",
-      name: b.name,
-      email: b.email || "—",
-      contact: b.contact || "—",
+      key,
+      kind: "warning",
+      title:
+        notice === "approved"
+          ? "Approved, but the email didn't send"
+          : "Declined, but the email didn't send",
+      text: `Please contact ${b.name} yourself: ${b.email || "—"}, ${b.contact || "—"}.`,
     };
   }
-  if (sent === "1") {
-    return {
-      kind: "line",
-      role: "status",
-      className: "font-semibold text-success",
-      text: `Approved. ${b.name} has been emailed.`,
-    };
+  if (notice === "approved") {
+    return { key, kind: "success", title: "Request approved", text: `${b.name} has been emailed.` };
   }
   return {
-    kind: "line",
-    role: "alert",
-    className: "font-semibold text-warning",
-    text: `${notice === "approved" ? "Approved" : "Declined"}, but the email to ${b.name} couldn't be sent. Please contact them yourself: ${b.email}, ${b.contact}.`,
+    key,
+    kind: "danger",
+    title: "Request declined",
+    text: `A decline email was sent to ${b.name}. The hours are free again.`,
   };
 }
 
@@ -130,77 +126,6 @@ function Decisions({ g, filter }: { g: PendingGroup; filter: Filter }) {
         time={formatRange(g.hours)}
       />
     </div>
-  );
-}
-
-function DeclinedCard({
-  notice,
-  filter,
-}: {
-  notice: Extract<Notice, { kind: "declined" }>;
-  filter: Filter;
-}) {
-  return (
-    <section
-      role={notice.sent ? "status" : "alert"}
-      aria-labelledby="declined-heading"
-      className={`mx-auto flex w-full max-w-[32rem] flex-col items-center gap-3 rounded-card-mobile border bg-surface px-5 py-6 text-center ${
-        notice.sent ? "border-line" : "border-warning"
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`grid size-11 place-items-center rounded-pill ${
-          notice.sent ? "bg-mist text-danger" : "bg-warning/15 text-warning"
-        }`}
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {notice.sent ? (
-            <path d="M6 6l12 12M18 6L6 18" />
-          ) : (
-            <>
-              <path d="M12 3l9.5 17h-19z" />
-              <path d="M12 10v4M12 17.5v.01" />
-            </>
-          )}
-        </svg>
-      </span>
-      <h2 id="declined-heading">Reservation declined</h2>
-      {notice.sent ? (
-        <p className="text-ink-muted [overflow-wrap:anywhere]">
-          A decline email has been sent to <span className="font-semibold text-ink">{notice.name}</span> (
-          {notice.email}). The hours are free again.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2 [overflow-wrap:anywhere]">
-          <p className="font-semibold text-warning">
-            The reservation was declined, but the email to {notice.name} couldn&apos;t be sent.
-          </p>
-          <p className="text-ink-muted">
-            The hours are free again. Please let them know yourself:{" "}
-            <a href={`mailto:${notice.email}`} className="font-medium text-brand-strong underline">
-              {notice.email}
-            </a>
-            , <span className="font-semibold text-ink">{notice.contact}</span>.
-          </p>
-        </div>
-      )}
-      <Link
-        href={pageHref(filter)}
-        className="mt-1 inline-flex min-h-11 items-center rounded-pill bg-navy px-5 text-sm font-semibold text-navy-ink hover:bg-brand-strong motion-safe:transition-[color,background-color,border-color,box-shadow,filter] motion-safe:duration-300 motion-safe:delay-75"
-      >
-        Back to pending requests
-      </Link>
-    </section>
   );
 }
 
@@ -363,12 +288,7 @@ export default async function PendingPage({ searchParams }: PageProps<"/admin/pe
         </p>
       </div>
 
-      {notice?.kind === "declined" && <DeclinedCard notice={notice} filter={filter} />}
-      {notice?.kind === "line" && (
-        <p role={notice.role} className={notice.className}>
-          {notice.text}
-        </p>
-      )}
+      {notice && <ResultToast key={notice.key} notice={notice} />}
       {capped && (
         <p role="status" className="text-warning">
           Showing the oldest {pending.length} requests. Approve or decline these to see the rest.
